@@ -1,15 +1,15 @@
 {
   "title": "JH Blog",
   "subTitle": "记录编程、学习与生活思考",
-  "displayTitle": "JustHeart31",
+  "displayTitle": "JustHeart",
   "avatarUrl": "https://avatars.githubusercontent.com/u/171469879?v=4&size=200",
   "GMEEK_VERSION": "last",
   "i18n": "CN",
   "themeMode": "manual",
   "dayTheme": "light",
   "nightTheme": "dark_dimmed",
-  "onePageListNum": 8,
+  "onePageListNum": 6,
   "showPostSource": 0,
-  "bottomText": "本站文章如无特别说明，均为原创内容。",
-  "style": "<style>body{letter-spacing:.2px;} img.avatar{border-radius:50%!important;box-shadow:0 6px 20px rgba(0,0,0,.15);} .post-list-item{border-radius:16px;padding:16px 18px;border:1px solid rgba(128,128,128,.18);box-shadow:0 4px 18px rgba(0,0,0,.04);transition:all .2s ease;} .post-list-item:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(0,0,0,.08);}</style>"
+  "bottomText": "感谢你的访问，欢迎交流。",
+  "style": "<style>body{letter-spacing:.2px;} img.avatar{border-radius:50%!important;box-shadow:0 8px 24px rgba(0,0,0,.14);} .post-list-item{border-radius:18px;padding:18px 20px;border:1px solid rgba(128,128,128,.16);box-shadow:0 6px 20px rgba(0,0,0,.04);transition:transform .2s ease, box-shadow .2s ease;} .post-list-item:hover{transform:translateY(-3px);box-shadow:0 12px 30px rgba(0,0,0,.08);} .post-meta{opacity:.72;font-size:.92rem;}</style>"
 }
