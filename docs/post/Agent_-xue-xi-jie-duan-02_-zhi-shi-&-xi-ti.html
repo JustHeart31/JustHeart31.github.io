@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html data-color-mode="light" data-dark-theme="dark_dimmed" data-light-theme="light" lang="zh-CN">
+<head>
+    <meta content="text/html; charset=utf-8" http-equiv="content-type" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link href='https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/Primer/21.0.7/primer.css' rel='stylesheet' />
+    
+    <link rel="icon" href="https://avatars.githubusercontent.com/u/171469879?v=4&size=200"><script>
+        let theme = localStorage.getItem("meek_theme") || "light";
+        document.documentElement.setAttribute("data-color-mode", theme);
+    </script>
+<meta name="description" content="# 📚 第二章：智能体发展史核心笔记
+
+本章回顾了智能体技术从“手工编码规则”到“通用自主学习”的范式转移。">
+<meta property="og:title" content="Agent_学习阶段02_知识&习题">
+<meta property="og:description" content="# 📚 第二章：智能体发展史核心笔记
+
+本章回顾了智能体技术从“手工编码规则”到“通用自主学习”的范式转移。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://JustHeart31.github.io/post/Agent_-xue-xi-jie-duan-02_-zhi-shi-%26-xi-ti.html">
+<meta property="og:image" content="https://avatars.githubusercontent.com/u/171469879?v=4&size=200">
+<title>Agent_学习阶段02_知识&习题</title>
+
+
+
+</head>
+<style>
+body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;padding: 45px;font-size: 16px;font-family: sans-serif;line-height: 1.25;}
+#header{display:flex;padding-bottom:8px;border-bottom: 1px solid var(--borderColor-muted, var(--color-border-muted));margin-bottom: 16px;}
+#footer {margin-top:64px; text-align: center;font-size: small;}
+
+</style>
+
+<style>
+.postTitle{margin: auto 0;font-size:40px;font-weight:bold;}
+.title-right{display:flex;margin:auto 0 0 auto;}
+.title-right .circle{padding: 14px 16px;margin-right:8px;}
+#postBody{border-bottom: 1px solid var(--color-border-default);padding-bottom:36px;}
+#postBody hr{height:2px;}
+#cmButton{height:48px;margin-top:48px;}
+#comments{margin-top:64px;}
+.g-emoji{font-size:24px;}
+@media (max-width: 600px) {
+    body {padding: 8px;}
+    .postTitle{font-size:24px;}
+}
+
+</style>
+<style>body{letter-spacing:.2px;} img.avatar{border-radius:50%!important;box-shadow:0 8px 24px rgba(0,0,0,.14);} .post-list-item{border-radius:18px;padding:18px 20px;border:1px solid rgba(128,128,128,.16);box-shadow:0 6px 20px rgba(0,0,0,.04);transition:transform .2s ease, box-shadow .2s ease;} .post-list-item:hover{transform:translateY(-3px);box-shadow:0 12px 30px rgba(0,0,0,.08);} .post-meta{opacity:.72;font-size:.92rem;}</style>
+
+
+
+<body>
+    <div id="header">
+<h1 class="postTitle">Agent_学习阶段02_知识&习题</h1>
+<div class="title-right">
+    <a href="https://JustHeart31.github.io" id="buttonHome" class="btn btn-invisible circle" title="首页">
+        <svg class="octicon" width="16" height="16">
+            <path id="pathHome" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+    
+
+    <a class="btn btn-invisible circle" onclick="modeSwitch();" title="切换主题">
+        <svg class="octicon" width="16" height="16" >
+            <path id="themeSwitch" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+
+</div>
+</div>
+    <div id="content">
+<div class="markdown-body" id="postBody"><h1>📚 第二章：智能体发展史核心笔记</h1>
+<p>本章回顾了智能体技术从“手工编码规则”到“通用自主学习”的范式转移。核心逻辑是：<strong>为了解决上一代技术的痛点，新的范式应运而生。</strong></p>
+<hr>
+<h4>1. 历史的基石：早期智能体范式（简要回顾）</h4>
+<p>在大模型出现之前，智能体的发展主要经历了两个阶段，它们为现代技术提供了重要的经验和教训。</p>
+<ul>
+<li>
+<p><strong>🤖 符号主义 (Symbolicism) / 逻辑AI</strong></p>
+<ul>
+<li><strong>核心思想：</strong> 智能 = 符号操作 + 逻辑推理（物理符号系统假说）。</li>
+<li><strong>代表技术：</strong>
+<ul>
+<li><strong>专家系统 (Expert System)：</strong> 如 <strong>MYCIN</strong>（医疗诊断），采用“知识库+推理机”架构。</li>
+<li><strong>SHRDLU：</strong> 能在“积木世界”中通过自然语言交互的系统。</li>
+<li><strong>ELIZA：</strong> 基于模式匹配（正则表达式）的聊天机器人，仅做句式替换，无理解能力。</li>
+</ul>
+</li>
+<li><strong>根本局限：</strong> 知识获取瓶颈（难以手工编码所有常识）、系统脆弱（遇到规则外的情况即失效）。</li>
+</ul>
+</li>
+<li>
+<p><strong>🧠 联结主义与强化学习 (Connectionism &amp; RL)</strong></p>
+<ul>
+<li><strong>核心思想：</strong> 模仿生物神经网络，通过数据学习权重（自下而上）。</li>
+<li><strong>代表技术：</strong> 深度学习（解决感知问题）、<strong>AlphaGo</strong>（强化学习解决序贯决策问题）。</li>
+<li><strong>贡献：</strong> 证明了智能可以通过“试错”和“数据训练”获得，而非仅靠预设规则。</li>
+</ul>
+</li>
+<li>
+<p><strong>🏛️ 理论转折点：心智社会 (Society of Mind)</strong></p>
+<ul>
+<li><strong>提出者：</strong> 马文·明斯基 (Marvin Minsky)。</li>
+<li><strong>核心观点：</strong> 智能并非来自单一完美的核心，而是由大量简单、甚至无心智的“智能体”协作涌现出来的。</li>
+<li><strong>意义：</strong> 直接启发了现代的<strong>多智能体系统 (MAS)</strong> 研究。</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h4>2. 现代智能体的核心演进（重点总结）</h4>
+<p>现代智能体（LLM Agent）是上述思想的集大成者，其核心突破在于**“预训练”<strong>与</strong>“神经-符号结合”**。</p>
+<h4>🔑 关键转折：从“任务特定”到“通用基础”</h4>
+<ul>
+<li><strong>预训练范式 (Pre-training)：</strong>
+<ul>
+<li><strong>原理：</strong> 在海量互联网文本上进行自监督学习（预测下一个词），构建通用世界知识模型。</li>
+<li><strong>涌现能力 (Emergent Abilities)：</strong> 当模型规模跨越阈值后，展现出小模型不具备的能力，如<strong>思维链 (Chain-of-Thought)</strong> 推理、上下文学习 (In-context Learning)。</li>
+</ul>
+</li>
+</ul>
+<h4>🧠 现代 LLM 智能体架构</h4>
+<p>现代智能体技术是符号主义、联结主义与行为主义三大流派的集大成者。它不再依赖于手工编写的规则，而是以<strong>大语言模型（LLM）为核心大脑</strong>，通过“预训练获取知识 + 强化学习优化策略 + 工具调用扩展能力”的架构，实现了从“狭窄任务处理”到“通用问题解决”的跨越。</p>
+<h4>1. 核心范式转变：从规则到预训练</h4>
+<p>现代智能体与传统专家系统（如 MYCIN）的根本区别在于<strong>知识的获取方式</strong>。</p>
+<ul>
+<li><strong>传统痛点：</strong> 依赖人类专家手工编码规则（IF-THEN），面临“知识获取瓶颈”和“常识缺失”。</li>
+<li><strong>现代方案：</strong> <strong>预训练 (Pre-training) + 微调 (Fine-tuning)</strong>
+<ul>
+<li><strong>自监督学习：</strong> 在海量互联网文本上通过“预测下一个词”学习世界知识。</li>
+<li><strong>涌现能力 (Emergent Abilities)：</strong> 当模型规模跨越阈值后，展现出小模型不具备的能力：
+<ul>
+<li><strong>上下文学习 (In-context Learning)：</strong> 无需参数更新，仅通过提示词（Prompt）即可学会新任务。</li>
+<li><strong>思维链 (Chain-of-Thought)：</strong> 通过生成中间推理步骤，解决复杂的逻辑和算术问题。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h4>2. 现代智能体的核心架构</h4>
+<p>现代 LLM 智能体是一个**“感知-思考-行动-记忆”**的闭环生态系统，如图 2.10 所示。</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th align="left">核心组件</th>
+<th align="left">功能描述</th>
+<th align="left">关键技术/机制</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="left"><strong>🧠 核心大脑</strong></td>
+<td align="left"><strong>大语言模型 (LLM)</strong><br>作为智能体的“中枢神经系统”，负责整合信息、进行推理和生成决策。</td>
+<td align="left">- <strong>通用推理引擎</strong><br>- <strong>世界知识库</strong> (隐式存储)</td>
+</tr>
+<tr>
+<td align="left"><strong>🤔 思考与规划</strong></td>
+<td align="left"><strong>规划模块 (Planning)</strong><br>将宏观目标拆解为可执行的步骤，进行策略制定。</td>
+<td align="left">- <strong>反思 (Reflection)</strong>：自我批判与纠错<br>- <strong>任务分解</strong>：将复杂问题拆解为子任务</td>
+</tr>
+<tr>
+<td align="left"><strong>👁️ 感知</strong></td>
+<td align="left"><strong>感知模块 (Perception)</strong><br>接收外部输入，将其转化为智能体可理解的内部表征。</td>
+<td align="left">- <strong>多模态输入</strong>：文本、图像、传感器数据<br>- <strong>环境状态提取</strong></td>
+</tr>
+<tr>
+<td align="left"><strong>🛠️ 行动</strong></td>
+<td align="left"><strong>执行模块 (Execution) &amp; 工具调用</strong><br>将 LLM 的决策转化为对环境的实际操作。</td>
+<td align="left">- <strong>工具使用 (Tool Use)</strong>：调用搜索引擎、API、代码解释器<br>- <strong>物理交互</strong>：控制机器人或软件Agent</td>
+</tr>
+<tr>
+<td align="left"><strong>💾 记忆</strong></td>
+<td align="left"><strong>记忆模块 (Memory)</strong><br>存储历史交互和环境状态，为下一轮决策提供上下文。</td>
+<td align="left">- <strong>短期记忆</strong>：当前会话上下文<br>- <strong>长期记忆</strong>：向量数据库存储的历史经验</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h4>3. 智能体的工作流：闭环迭代</h4>
+<p>现代智能体并非单次问答，而是一个持续迭代的<strong>强化学习</strong>过程（图 2.8 的思想延伸）。</p>
+<ol>
+<li><strong>感知 (Perception)：</strong>
+<ul>
+<li>接收用户指令或环境变化（Observation）。</li>
+</ul>
+</li>
+<li><strong>思考 (Reasoning)：</strong>
+<ul>
+<li><strong>LLM + 规划模块</strong>介入：分析目标，检索记忆，规划出下一步动作（如：需要搜索信息或执行代码）。</li>
+</ul>
+</li>
+<li><strong>行动 (Action)：</strong>
+<ul>
+<li><strong>工具调用 (Tool Call)：</strong> LLM 输出结构化指令，调用外部工具（如 Google 搜索、Python 解释器）。</li>
+</ul>
+</li>
+<li><strong>观察与反馈 (Observation)：</strong>
+<ul>
+<li>工具返回执行结果（Tool Result），环境状态改变。</li>
+<li><strong>奖励机制：</strong> 系统根据结果（如任务是否完成）进行隐式评估。</li>
+</ul>
+</li>
+<li><strong>记忆更新 (Memory Update)：</strong>
+<ul>
+<li>将本次交互的“状态-动作-结果”存入记忆，用于下一轮循环。</li>
+</ul>
+</li>
+</ol>
+<h4>4. 总结：新旧范式的对比</h4>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th align="left">维度</th>
+<th align="left">传统符号智能体 (Symbolic)</th>
+<th align="left">现代 LLM 智能体 (LLM Agent)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="left"><strong>智能来源</strong></td>
+<td align="left">人类专家预设的规则库</td>
+<td align="left">海量数据预训练 + 交互式学习</td>
+</tr>
+<tr>
+<td align="left"><strong>知识存储</strong></td>
+<td align="left">显式的符号 (IF-THEN)</td>
+<td align="left">隐式的神经网络权重 (参数)</td>
+</tr>
+<tr>
+<td align="left"><strong>决策方式</strong></td>
+<td align="left">逻辑推理 (Deductive)</td>
+<td align="left">概率生成 (Generative) + 思维链</td>
+</tr>
+<tr>
+<td align="left"><strong>环境交互</strong></td>
+<td align="left">封闭、静态 (如积木世界)</td>
+<td align="left">开放、动态 (通过工具调用现实世界)</td>
+</tr>
+<tr>
+<td align="left"><strong>主要局限</strong></td>
+<td align="left">脆弱、无法处理常识、扩展难</td>
+<td align="left">幻觉 (Hallucination)、不可控、计算成本高</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<blockquote>
+<p><strong>核心洞察：</strong> 现代智能体的本质是**“神经-符号”结合系统**。它利用神经网络（LLM）的泛化能力打破“知识瓶颈”，同时利用符号逻辑（工具调用、规划算法）保证决策的准确性，从而具备了在开放世界中自主完成复杂任务的潜力。</p>
+</blockquote>
+<hr>
+<h1>习题</h1>
+<blockquote>
+<p><strong>提示</strong>：以下的部分习题没有标准答案，旨在帮助学习者建立对智能体发展历史的系统性理解，并培养"以史为鉴"的技术洞察力。</p>
+</blockquote>
+<ol>
+<li>
+<p>物理符号系统假说<sup>[1]</sup>是符号主义时代的理论基石。请分析：</p>
+<ul>
+<li>
+<p>该假说的"充分性论断"和"必要性论断"分别是什么含义？</p>
+</li>
+<li>
+<p>结合本章内容，说明符号主义智能体在实践中遇到的哪些问题对该假说的"充分性"提出了挑战？</p>
+</li>
+<li>
+<p>大语言模型驱动的智能体是否符合物理符号系统假说？</p>
+<p><strong>答</strong>：大语言模型驱动的智能体不符合物理符号系统假说</p>
+</li>
+</ul>
+</li>
+<li>
+<p>专家系统MYCIN<sup>[2]</sup>在医疗诊断领域取得了显著成功，但最终并未大规模应用于临床实践。请思考：</p>
+<blockquote>
+<p><strong>提示</strong>：可以从技术、伦理、法律、用户接受度等多个角度分析</p>
+</blockquote>
+<ul>
+<li>
+<p>a.除了本章提到的"知识获取瓶颈"和"脆弱性"，还有哪些因素可能阻碍了专家系统在医疗等高风险领域的应用？</p>
+</li>
+<li>
+<p>b.如果让现在的你设计一个医疗诊断智能体，你会如何设计系统来克服MYCIN的局限？</p>
+</li>
+<li>
+<p>c.在哪些垂直领域中，基于规则的专家系统至今仍然是比深度学习更好的选择？请举例说明。</p>
+<p><strong>答</strong>：</p>
+<p>a.技术实现较复杂，因为对于病人可能会患有复合的疾病，这种专家系统无法识别复杂的复合疾病；另外，专家系统只是机械地给出对应疾病，并没有综合考虑患者现状，伦理和用户接受度较差。</p>
+<p>b.我会基于大语言模型来设计一个智能体，通过使用RAG技术构建疾病的向量库，利用检索增强生成的方式保证回答的准确性，同时我会让大模型作为一个比较人性化的医生，尽最大可能保证用户的接受度</p>
+<p>c.对于问题有严格对应答案的领域，比如数学公式，可以使用基于规则的专家系统</p>
+</li>
+</ul>
+</li>
+<li>
+<p>马文·明斯基在"心智社会"理论<sup>[7]</sup>中提出了一个革命性的观点：智能源于大量简单智能体的协作，而非单一的完美系统。</p>
+<ul>
+<li>
+<p>在图2.6"搭建积木塔"的例子中，如果 <code class="notranslate">GRASP</code> 智能体突然失效了，整个系统会发生什么？这种去中心化架构的优势和劣势是什么？</p>
+<p><strong>答</strong>： 如果 <code class="notranslate">GRASP</code> 智能体失效，该系统就无法正常运行。优点是将复合问题分化为简单问题，方便系统的设计。缺点是系统的稳定性差，必须保证每个模块都能正常运行</p>
+</li>
+<li>
+<p>将"心智社会"理论与现在的一些多智能体系统（如<a href="https://docs.camel-ai.org/key_modules/workforce" rel="nofollow">CAMEL-Workforce</a>、<a href="https://github.com/FoundationAgents/MetaGPT">MetaGPT</a>、<a href="https://github.com/crewAIInc/crewAI">CrewAI</a>）进行对比，它们之间存在哪些关联和不同之处？</p>
+<p><strong>答</strong>： 关联：都是使用了分布式的思想。不同：现在的多智能体是基于大语言模型的</p>
+</li>
+<li>
+<p>马文·明斯基认为智能体可以是"无心"的简单过程，然而现在的大语言模型和智能体往往都拥有强大的推理能力。这是否意味着"心智社会"理论在大语言模型时代不再适用了？</p>
+<p><strong>答</strong>：不是，原因不知道</p>
+</li>
+</ul>
+</li>
+<li>
+<p>强化学习与监督学习是两种不同的学习范式。请分析：</p>
+<ul>
+<li>
+<p>用AlphaGo的例子说明强化学习的"试错学习"机制是如何工作的</p>
+<p><strong>答</strong>：对每一步进行奖惩，来评测该决策的正确与否，最终通过大量训练来学会最优解法</p>
+</li>
+<li>
+<p>为什么强化学习特别适合序贯决策问题？它与监督学习在数据需求上有什么本质区别？</p>
+<p><strong>答</strong>：强化学习根据每次决策后的状态继续进行决策。而监督学习可以一次性给出所有训练数据</p>
+</li>
+<li>
+<p>现在我们需要训练一个会玩超级马里奥游戏的智能体。如果分别使用监督学习和强化学习，各需要什么数据？哪种方法对于这个任务来说更合适？</p>
+<p><strong>答</strong>：监督学习需要大量由人类高手操作的游戏录像，标注出每一帧画面下应该按哪个键；强化学习只需要定义好游戏规则和奖励（例如，向右移动+1分，吃到金币+10分，死亡-100分）。对于超级马里奥这类游戏，强化学习更合适，因为收集高质量的人类操作数据非常困难，而设计奖励函数相对容易。</p>
+</li>
+<li>
+<p>在大语言模型的训练过程中，强化学习起到了什么关键性的作用？</p>
+<p><strong>答</strong>：在大语言模型训练后期，会使用基于人类反馈的强化学习（RLHF）。它通过人类对模型生成的不同回答进行排序和打分，训练一个奖励模型，再用这个奖励模型指导大语言模型的微调，使其输出更符合人类偏好（如有帮助、无害、真实），从而显著提升模型的有用性和安全性。</p>
+</li>
+</ul>
+</li>
+<li>
+<p>预训练-微调范式是现代人工智能领域的重要突破。请深入思考：</p>
+<ul>
+<li>
+<p>为什么说预训练解决了符号主义时代的"知识获取瓶颈"问题？它们在知识表示方式上有什么本质区别？</p>
+<p><strong>答</strong>：符号主义需要专家手动编写和录入知识（规则、事实），成本极高，形成了“知识获取瓶颈”。预训练则让模型直接从海量互联网文本中自动学习知识，无需人工干预。本质区别在于：符号主义的知识是显式、离散、结构化的符号（如IF-THEN规则），而预训练模型的知识是隐式、连续、分布式的向量表示（存储在神经网络的权重中）。</p>
+</li>
+<li>
+<p>预训练模型的知识绝大部分来自互联网数据，这可能带来哪些问题？如何缓解以上问题？</p>
+<p><strong>答</strong>： 可能带来幻觉（编造事实）、偏见（放大社会偏见）、过时信息等问题。可以通过检索增强生成（RAG）引入实时、可靠的知识源，以及通过强化学习人类反馈（RLHF）等方式来缓解。</p>
+</li>
+<li>
+<p>你认为"预训练-微调"范式是否可能会被某种新范式取代？或者它会长期存在？</p>
+<p><strong>答</strong>： 长期存在，但以后会继续进化，比如融合强化学习等方法</p>
+</li>
+</ul>
+</li>
+</ol></div>
+<div style="font-size:small;margin-top:8px;float:right;">感谢你的访问，欢迎交流。</div>
+
+<button class="btn btn-block" type="button" onclick="openComments()" id="cmButton">评论</button>
+<div class="comments" id="comments"></div>
+
+</div>
+    <div id="footer"><div id="footer1">Copyright © <span id="copyrightYear"></span> <a href="https://JustHeart31.github.io">JH Blog</a></div>
+<div id="footer2">
+    <span id="runday"></span><span>Powered by <a href="https://meekdai.com/Gmeek.html" target="_blank">Gmeek</a></span>
+</div>
+
+<script>
+var now=new Date();
+document.getElementById("copyrightYear").innerHTML=now.getFullYear();
+
+if(""!=""){
+    var startSite=new Date("");
+    var diff=now.getTime()-startSite.getTime();
+    var diffDay=Math.floor(diff/(1000*60*60*24));
+    document.getElementById("runday").innerHTML="网站运行 "+diffDay+" 天"+" • ";
+}
+</script></div>
+</body>
+<script>
+var IconList={'sun': 'M8 10.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM8 12a4 4 0 100-8 4 4 0 000 8zM8 0a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0V.75A.75.75 0 018 0zm0 13a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 018 13zM2.343 2.343a.75.75 0 011.061 0l1.06 1.061a.75.75 0 01-1.06 1.06l-1.06-1.06a.75.75 0 010-1.06zm9.193 9.193a.75.75 0 011.06 0l1.061 1.06a.75.75 0 01-1.06 1.061l-1.061-1.06a.75.75 0 010-1.061zM16 8a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0116 8zM3 8a.75.75 0 01-.75.75H.75a.75.75 0 010-1.5h1.5A.75.75 0 013 8zm10.657-5.657a.75.75 0 010 1.061l-1.061 1.06a.75.75 0 11-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zm-9.193 9.193a.75.75 0 010 1.06l-1.06 1.061a.75.75 0 11-1.061-1.06l1.06-1.061a.75.75 0 011.061 0z', 'moon': 'M9.598 1.591a.75.75 0 01.785-.175 7 7 0 11-8.967 8.967.75.75 0 01.961-.96 5.5 5.5 0 007.046-7.046.75.75 0 01.175-.786zm1.616 1.945a7 7 0 01-7.678 7.678 5.5 5.5 0 107.678-7.678z', 'sync': 'M1.705 8.005a.75.75 0 0 1 .834.656 5.5 5.5 0 0 0 9.592 2.97l-1.204-1.204a.25.25 0 0 1 .177-.427h3.646a.25.25 0 0 1 .25.25v3.646a.25.25 0 0 1-.427.177l-1.38-1.38A7.002 7.002 0 0 1 1.05 8.84a.75.75 0 0 1 .656-.834ZM8 2.5a5.487 5.487 0 0 0-4.131 1.869l1.204 1.204A.25.25 0 0 1 4.896 6H1.25A.25.25 0 0 1 1 5.75V2.104a.25.25 0 0 1 .427-.177l1.38 1.38A7.002 7.002 0 0 1 14.95 7.16a.75.75 0 0 1-1.49.178A5.5 5.5 0 0 0 8 2.5Z', 'home': 'M6.906.664a1.749 1.749 0 0 1 2.187 0l5.25 4.2c.415.332.657.835.657 1.367v7.019A1.75 1.75 0 0 1 13.25 15h-3.5a.75.75 0 0 1-.75-.75V9H7v5.25a.75.75 0 0 1-.75.75h-3.5A1.75 1.75 0 0 1 1 13.25V6.23c0-.531.242-1.034.657-1.366l5.25-4.2Zm1.25 1.171a.25.25 0 0 0-.312 0l-5.25 4.2a.25.25 0 0 0-.094.196v7.019c0 .138.112.25.25.25H5.5V8.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 .75.75v5.25h2.75a.25.25 0 0 0 .25-.25V6.23a.25.25 0 0 0-.094-.195Z', 'github': 'M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z'};
+var utterancesLoad=0;
+
+let themeSettings={
+    "dark": ["dark","moon","#00f0ff","dark-blue"],
+    "light": ["light","sun","#ff5000","github-light"],
+    "auto": ["auto","sync","","preferred-color-scheme"]
+};
+function changeTheme(mode, icon, color, utheme){
+    document.documentElement.setAttribute("data-color-mode",mode);
+    document.getElementById("themeSwitch").setAttribute("d",value=IconList[icon]);
+    document.getElementById("themeSwitch").parentNode.style.color=color;
+    if(utterancesLoad==1){utterancesTheme(utheme);}
+}
+function modeSwitch(){
+    let currentMode=document.documentElement.getAttribute('data-color-mode');
+    let newMode = currentMode === "light" ? "dark" : currentMode === "dark" ? "auto" : "light";
+    localStorage.setItem("meek_theme", newMode);
+    if(themeSettings[newMode]){
+        changeTheme(...themeSettings[newMode]);
+    }
+}
+function utterancesTheme(theme){
+    const message={type:'set-theme',theme: theme};
+    const iframe=document.getElementsByClassName('utterances-frame')[0];
+    iframe.contentWindow.postMessage(message,'https://utteranc.es');
+}
+if(themeSettings[theme]){changeTheme(...themeSettings[theme]);}
+console.log("\n %c Gmeek last https://github.com/Meekdai/Gmeek \n","padding:5px 0;background:#02d81d;color:#fff");
+</script>
+
+<script>
+document.getElementById("pathHome").setAttribute("d",IconList["home"]);
+
+
+
+
+function openComments(){
+    cm=document.getElementById("comments");
+    cmButton=document.getElementById("cmButton");
+    cmButton.disabled=true;
+    cmButton.innerHTML="loading";
+    span=document.createElement("span");
+    span.setAttribute("class","AnimatedEllipsis");
+    cmButton.appendChild(span);
+
+    script=document.createElement("script");
+    script.setAttribute("src","https://utteranc.es/client.js");
+    script.setAttribute("repo","JustHeart31/JustHeart31.github.io");
+    script.setAttribute("issue-term","title");
+    
+    if(localStorage.getItem("meek_theme")=="dark"){script.setAttribute("theme","dark-blue");}
+    else if(localStorage.getItem("meek_theme")=="light") {script.setAttribute("theme","github-light");}
+    else{script.setAttribute("theme","preferred-color-scheme");}
+    
+    script.setAttribute("crossorigin","anonymous");
+    script.setAttribute("async","");
+    cm.appendChild(script);
+
+    int=self.setInterval("iFrameLoading()",200);
+}
+
+function iFrameLoading(){
+    var utterances=document.getElementsByClassName('utterances');
+    if(utterances.length==1){
+        if(utterances[0].style.height!=""){
+            utterancesLoad=1;
+            int=window.clearInterval(int);
+            document.getElementById("cmButton").style.display="none";
+            console.log("utterances Load OK");
+        }
+    }
+}
+
+
+
+</script>
+
+
+</html>
