@@ -1,0 +1,1621 @@
+<!DOCTYPE html>
+<html data-color-mode="light" data-dark-theme="dark_dimmed" data-light-theme="light" lang="zh-CN">
+<head>
+    <meta content="text/html; charset=utf-8" http-equiv="content-type" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link href='https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/Primer/21.0.7/primer.css' rel='stylesheet' />
+    
+    <link rel="icon" href="https://avatars.githubusercontent.com/u/171469879?v=4&size=200"><script>
+        let theme = localStorage.getItem("meek_theme") || "light";
+        document.documentElement.setAttribute("data-color-mode", theme);
+    </script>
+<meta name="description" content="# 第三章《大语言模型基础》笔记
+
+## 一、章节总览
+
+本章核心问题是：**现代智能体为什么能工作，大语言模型为什么会表现出强大的理解、生成与一定程度的推理能力？**
+
+全章主线可以概括为：
+
+1. 语言模型的基本任务是什么
+2. 语言模型如何从统计方法演进到神经网络，再到 Transformer
+3. 为什么今天的大模型大多采用 **Decoder-only** 架构
+4. 我们如何通过 **Prompt、采样参数、Tokenizer** 与模型有效交互
+5. 如何调用和部署开源模型
+6. 如何做模型选型
+7. 大模型为什么会越来越强（缩放法则），又为什么仍然会出错（幻觉等局限）
+
+---
+
+# 二、语言模型基础：从“统计计数”到“深度建模”
+
+## 2.1 语言模型的本质
+
+语言模型（Language Model, LM）的核心任务是：
+
+> **为一个词序列出现的概率建模，或者等价地，预测下一个最可能出现的词。">
+<meta property="og:title" content="Agent学习阶段03_知识">
+<meta property="og:description" content="# 第三章《大语言模型基础》笔记
+
+## 一、章节总览
+
+本章核心问题是：**现代智能体为什么能工作，大语言模型为什么会表现出强大的理解、生成与一定程度的推理能力？**
+
+全章主线可以概括为：
+
+1. 语言模型的基本任务是什么
+2. 语言模型如何从统计方法演进到神经网络，再到 Transformer
+3. 为什么今天的大模型大多采用 **Decoder-only** 架构
+4. 我们如何通过 **Prompt、采样参数、Tokenizer** 与模型有效交互
+5. 如何调用和部署开源模型
+6. 如何做模型选型
+7. 大模型为什么会越来越强（缩放法则），又为什么仍然会出错（幻觉等局限）
+
+---
+
+# 二、语言模型基础：从“统计计数”到“深度建模”
+
+## 2.1 语言模型的本质
+
+语言模型（Language Model, LM）的核心任务是：
+
+> **为一个词序列出现的概率建模，或者等价地，预测下一个最可能出现的词。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://JustHeart31.github.io/post/Agent-xue-xi-jie-duan-03_-zhi-shi.html">
+<meta property="og:image" content="https://avatars.githubusercontent.com/u/171469879?v=4&size=200">
+<title>Agent学习阶段03_知识</title>
+<link href="//unpkg.com/@wooorm/starry-night@2.1.1/style/both.css" rel="stylesheet" />
+
+
+</head>
+<style>
+body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;padding: 45px;font-size: 16px;font-family: sans-serif;line-height: 1.25;}
+#header{display:flex;padding-bottom:8px;border-bottom: 1px solid var(--borderColor-muted, var(--color-border-muted));margin-bottom: 16px;}
+#footer {margin-top:64px; text-align: center;font-size: small;}
+
+</style>
+
+<style>
+.postTitle{margin: auto 0;font-size:40px;font-weight:bold;}
+.title-right{display:flex;margin:auto 0 0 auto;}
+.title-right .circle{padding: 14px 16px;margin-right:8px;}
+#postBody{border-bottom: 1px solid var(--color-border-default);padding-bottom:36px;}
+#postBody hr{height:2px;}
+#cmButton{height:48px;margin-top:48px;}
+#comments{margin-top:64px;}
+.g-emoji{font-size:24px;}
+@media (max-width: 600px) {
+    body {padding: 8px;}
+    .postTitle{font-size:24px;}
+}
+.copy-feedback {
+    display: none;
+    position: absolute;
+    top: 10px;
+    right: 50px;
+    color: var(--color-fg-on-emphasis);
+    background-color: var(--color-fg-muted);
+    border-radius: 3px;
+    padding: 5px 8px;
+    font-size: 12px;
+}
+</style>
+<style>body{letter-spacing:.2px;} img.avatar{border-radius:50%!important;box-shadow:0 8px 24px rgba(0,0,0,.14);} .post-list-item{border-radius:18px;padding:18px 20px;border:1px solid rgba(128,128,128,.16);box-shadow:0 6px 20px rgba(0,0,0,.04);transition:transform .2s ease, box-shadow .2s ease;} .post-list-item:hover{transform:translateY(-3px);box-shadow:0 12px 30px rgba(0,0,0,.08);} .post-meta{opacity:.72;font-size:.92rem;}</style>
+
+
+
+<body>
+    <div id="header">
+<h1 class="postTitle">Agent学习阶段03_知识</h1>
+<div class="title-right">
+    <a href="https://JustHeart31.github.io" id="buttonHome" class="btn btn-invisible circle" title="首页">
+        <svg class="octicon" width="16" height="16">
+            <path id="pathHome" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+    
+
+    <a class="btn btn-invisible circle" onclick="modeSwitch();" title="切换主题">
+        <svg class="octicon" width="16" height="16" >
+            <path id="themeSwitch" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+
+</div>
+</div>
+    <div id="content">
+<div class="markdown-body" id="postBody"><h1>第三章《大语言模型基础》笔记</h1>
+<h2>一、章节总览</h2>
+<p>本章核心问题是：<strong>现代智能体为什么能工作，大语言模型为什么会表现出强大的理解、生成与一定程度的推理能力？</strong></p>
+<p>全章主线可以概括为：</p>
+<ol>
+<li>语言模型的基本任务是什么</li>
+<li>语言模型如何从统计方法演进到神经网络，再到 Transformer</li>
+<li>为什么今天的大模型大多采用 <strong>Decoder-only</strong> 架构</li>
+<li>我们如何通过 <strong>Prompt、采样参数、Tokenizer</strong> 与模型有效交互</li>
+<li>如何调用和部署开源模型</li>
+<li>如何做模型选型</li>
+<li>大模型为什么会越来越强（缩放法则），又为什么仍然会出错（幻觉等局限）</li>
+</ol>
+<hr>
+<h1>二、语言模型基础：从“统计计数”到“深度建模”</h1>
+<h2>2.1 语言模型的本质</h2>
+<p>语言模型（Language Model, LM）的核心任务是：</p>
+<blockquote>
+<p><strong>为一个词序列出现的概率建模，或者等价地，预测下一个最可能出现的词。</strong></p>
+</blockquote>
+<p>对于句子 $S = w_1,w_2,\dots,w_m$，其概率可写为：</p>
+<p>$$
+P(S)=P(w_1)\cdot P(w_2|w_1)\cdot P(w_3|w_1,w_2)\cdots P(w_m|w_1,\dots,w_{m-1})
+$$</p>
+<p>这就是<strong>链式法则</strong>。</p>
+<h3>我的理解</h3>
+<p>语言模型本质上不是“理解世界”，而是在做一个极其强大的概率预测器：</p>
+<ul>
+<li>输入已有上下文</li>
+<li>输出下一个 token 的概率分布</li>
+<li>连续重复这个过程，就能生成文本</li>
+</ul>
+<hr>
+<h2>2.2 N-gram：最早期的语言模型思路</h2>
+<h3>2.2.1 核心思想</h3>
+<p>直接估计完整条件概率太难，所以引入<strong>马尔可夫假设</strong>：</p>
+<blockquote>
+<p>一个词的出现概率，只依赖它前面有限个词，而不是全部历史。</p>
+</blockquote>
+<p>于是得到 <strong>N-gram 模型</strong>：</p>
+<ul>
+<li>
+<strong>Bigram</strong>：只看前 1 个词</li>
+<li>
+<strong>Trigram</strong>：只看前 2 个词</li>
+<li>更一般地：只看前 $n-1$ 个词</li>
+</ul>
+<p>例如：</p>
+<p>$$
+P(w_i|w_1,\dots,w_{i-1}) \approx P(w_i|w_{i-1})
+$$</p>
+<p>或</p>
+<p>$$
+P(w_i|w_1,\dots,w_{i-1}) \approx P(w_i|w_{i-2},w_{i-1})
+$$</p>
+<h3>2.2.2 参数估计方法</h3>
+<p>使用<strong>最大似然估计（MLE）</strong>，本质就是计数：</p>
+<p>对于 Bigram：</p>
+<p>$$
+P(w_i|w_{i-1})=\frac{Count(w_{i-1},w_i)}{Count(w_{i-1})}
+$$</p>
+<p>即：</p>
+<ul>
+<li>分子：词对连续出现的次数</li>
+<li>分母：前一个词出现的总次数</li>
+</ul>
+<h3>2.2.3 优点与局限</h3>
+<h4>优点</h4>
+<ul>
+<li>简单直观</li>
+<li>易于计算</li>
+<li>在小规模任务中有一定效果</li>
+</ul>
+<h4>致命问题</h4>
+<ol>
+<li>
+<p><strong>数据稀疏性</strong></p>
+<ul>
+<li>没见过的词序列概率直接变成 0</li>
+<li>需要平滑，但只能缓解，不能根治</li>
+</ul>
+</li>
+<li>
+<p><strong>泛化能力差</strong></p>
+<ul>
+<li>模型把词当作离散符号</li>
+<li>无法理解 <code class="notranslate">agent</code> 和 <code class="notranslate">robot</code> 语义相近</li>
+<li>见过 <code class="notranslate">agent learns</code>，也无法自然迁移到 <code class="notranslate">robot learns</code></li>
+</ul>
+</li>
+</ol>
+<h3>结论</h3>
+<p>N-gram 的问题，决定了它不适合现代大模型，但它非常重要，因为它明确了语言模型的原始目标：</p>
+<blockquote>
+<p><strong>预测序列概率 / 预测下一个词</strong></p>
+</blockquote>
+<hr>
+<h2>2.3 神经网络语言模型：引入词向量</h2>
+<p>N-gram 最大的问题，是把词看成孤立的符号。<br>
+神经网络语言模型的关键突破在于：</p>
+<blockquote>
+<p><strong>用连续向量表示词，而不是用离散 ID。</strong></p>
+</blockquote>
+<h3>2.3.1 词嵌入（Word Embedding）</h3>
+<p>每个词被映射到一个高维连续空间中的向量：</p>
+<ul>
+<li>语义接近的词，向量接近</li>
+<li>语义差异大的词，向量距离远</li>
+</ul>
+<p>例如：</p>
+<ul>
+<li><code class="notranslate">agent</code> 和 <code class="notranslate">robot</code> 更接近</li>
+<li><code class="notranslate">agent</code> 和 <code class="notranslate">apple</code> 更远</li>
+</ul>
+<h3>2.3.2 余弦相似度</h3>
+<p>衡量两个词向量是否接近，常用余弦相似度：</p>
+<p>$$
+\text{similarity}(\vec{a},\vec{b})=\frac{\vec{a}\cdot \vec{b}}{|\vec{a}||\vec{b}|}
+$$</p>
+<ul>
+<li>越接近 1：越相似</li>
+<li>接近 0：关系弱</li>
+<li>接近 -1：方向相反</li>
+</ul>
+<h3>2.3.3 词向量的意义</h3>
+<p>词嵌入不只是“压缩表示”，更重要的是它让模型第一次具备了：</p>
+<ul>
+<li>语义泛化能力</li>
+<li>近义词迁移能力</li>
+<li>一定的关系建模能力</li>
+</ul>
+<p>经典例子：</p>
+<p><code class="notranslate">king - man + woman ≈ queen</code></p>
+<h3>2.3.4 局限</h3>
+<p>虽然神经网络语言模型解决了 N-gram 的泛化问题，但它仍然有一个明显限制：</p>
+<blockquote>
+<p><strong>上下文窗口是固定的。</strong></p>
+</blockquote>
+<p>它只能看固定长度的前文，长距离依赖处理不好。</p>
+<hr>
+<h1>三、RNN / LSTM：让模型拥有“记忆”</h1>
+<h2>3.1 RNN 的核心思想</h2>
+<p>循环神经网络（RNN）引入了<strong>隐藏状态（hidden state）</strong>，可以理解为模型的“短期记忆”。</p>
+<p>在每一个时间步：</p>
+<ul>
+<li>输入当前 token</li>
+<li>结合上一时刻隐藏状态</li>
+<li>产生新的隐藏状态</li>
+<li>将新状态传给下一个时间步</li>
+</ul>
+<p>因此它第一次能够处理：</p>
+<blockquote>
+<p><strong>可变长度序列</strong></p>
+</blockquote>
+<h3>直观理解</h3>
+<p>N-gram / 前馈网络：固定窗口看几步<br>
+RNN：理论上可以一直把历史信息往后传</p>
+<hr>
+<h2>3.2 RNN 的问题：梯度消失与长距离依赖</h2>
+<p>虽然 RNN 有“记忆”，但这个记忆并不稳定。</p>
+<p>随着序列变长，早期信息在多次传递中会逐渐衰减，出现：</p>
+<ul>
+<li>梯度消失</li>
+<li>长距离依赖难以学习</li>
+<li>训练效率低</li>
+<li>无法并行</li>
+</ul>
+<p>这意味着：</p>
+<blockquote>
+<p>RNN 理论上能记很久，实际上很难真的记住很久。</p>
+</blockquote>
+<hr>
+<h2>3.3 LSTM：改进版记忆机制</h2>
+<p>为了解决 RNN 的长距离依赖问题，提出了 <strong>LSTM（Long Short-Term Memory）</strong>。</p>
+<h3>核心思想</h3>
+<p>LSTM 通过门控机制控制信息流动：</p>
+<ul>
+<li>忘记什么</li>
+<li>保留什么</li>
+<li>输出什么</li>
+</ul>
+<p>常见理解为三个门：</p>
+<ol>
+<li>忘记门</li>
+<li>输入门</li>
+<li>输出门</li>
+</ol>
+<h3>作用</h3>
+<p>LSTM 可以更稳定地保留长期信息，因此相比普通 RNN 更适合处理长序列。</p>
+<hr>
+<h2>3.4 为什么今天不再以 RNN/LSTM 为主流</h2>
+<p>RNN/LSTM 在历史上非常重要，但今天在大语言模型中已不是主角，原因主要有两点：</p>
+<ol>
+<li>
+<p><strong>串行计算，难并行</strong></p>
+<ul>
+<li>第 t 步必须等第 t-1 步</li>
+<li>不适合大规模训练</li>
+</ul>
+</li>
+<li>
+<p><strong>长距离依赖依然不够理想</strong></p>
+<ul>
+<li>即使用 LSTM，也不如后来的注意力机制直接高效</li>
+</ul>
+</li>
+</ol>
+<h3>结论</h3>
+<p>RNN/LSTM 是通往 Transformer 的关键过渡，但在当代 LLM 中，理解其思想即可，工程上重点应转向 Transformer。</p>
+<hr>
+<h1>四、Transformer：现代大语言模型的基础</h1>
+<h2>4.1 Transformer 为什么重要</h2>
+<p>Transformer 是现代 LLM 的基础架构。<br>
+它最大的突破是：</p>
+<blockquote>
+<p><strong>放弃循环结构，用注意力机制直接建模任意位置之间的关系。</strong></p>
+</blockquote>
+<p>这带来两大优势：</p>
+<ol>
+<li>更容易捕捉长距离依赖</li>
+<li>可以并行训练</li>
+</ol>
+<hr>
+<h2>4.2 自注意力（Self-Attention）</h2>
+<h3>4.2.1 直觉</h3>
+<p>处理一个词时，模型不只看它自己，而是会关注句子中其他相关词。</p>
+<p>例如：</p>
+<blockquote>
+<p>“The agent learns because it is intelligent.”</p>
+</blockquote>
+<p>理解 <code class="notranslate">it</code> 时，模型需要更多关注 <code class="notranslate">agent</code>。</p>
+<h3>4.2.2 Q、K、V 机制</h3>
+<p>每个 token 会映射成三个向量：</p>
+<ul>
+<li><strong>Q（Query）</strong>：我要找什么信息</li>
+<li><strong>K（Key）</strong>：我有哪些标签可供匹配</li>
+<li><strong>V（Value）</strong>：我真正携带的信息内容</li>
+</ul>
+<h3>4.2.3 计算流程</h3>
+<ol>
+<li>对每个 token 生成 Q、K、V</li>
+<li>用当前 token 的 Q 去和所有 token 的 K 做点积</li>
+<li>得到相关性分数</li>
+<li>除以 $\sqrt{d_k}$ 进行缩放</li>
+<li>经过 Softmax 归一化</li>
+<li>用这些权重对所有 V 做加权求和</li>
+<li>得到当前 token 的新表示</li>
+</ol>
+<p>公式：</p>
+<p>$$
+\text{Attention}(Q,K,V)=\text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V
+$$</p>
+<h3>4.2.4 本质理解</h3>
+<p>自注意力做的事可以概括为：</p>
+<blockquote>
+<p><strong>让每个 token 动态决定：在理解自己时，应该参考上下文中的哪些 token、参考多少。</strong></p>
+</blockquote>
+<hr>
+<h2>4.3 多头注意力（Multi-Head Attention）</h2>
+<p>单个注意力头只能从一种角度看关系。<br>
+多头注意力的思想是：</p>
+<blockquote>
+<p><strong>并行使用多个注意力头，让模型从不同子空间、不同角度理解同一序列。</strong></p>
+</blockquote>
+<p>可能有的头关注：</p>
+<ul>
+<li>语法依赖</li>
+<li>指代关系</li>
+<li>语义相似</li>
+<li>局部搭配</li>
+<li>长距离关联</li>
+</ul>
+<h3>作用</h3>
+<p>多头注意力提升了表达能力，使模型可以同时捕捉多种关系模式。</p>
+<hr>
+<h2>4.4 前馈网络（Feed Forward Network, FFN）</h2>
+<p>在每一层注意力后，Transformer 还会接一个位置前馈网络。</p>
+<p>它的作用不是建模 token 之间关系，而是：</p>
+<blockquote>
+<p><strong>对每个 token 的表示再做一次非线性变换和特征提炼。</strong></p>
+</blockquote>
+<p>可以理解为：</p>
+<ul>
+<li>注意力负责“信息聚合”</li>
+<li>FFN 负责“特征加工”</li>
+</ul>
+<hr>
+<h2>4.5 残差连接与层归一化</h2>
+<p>Transformer 训练深层网络时，还依赖两个关键结构：</p>
+<h3>4.5.1 残差连接（Residual Connection）</h3>
+<p>公式可写成：</p>
+<p>$$
+\text{Output} = x + \text{Sublayer}(x)
+$$</p>
+<p>作用：</p>
+<ul>
+<li>缓解梯度消失</li>
+<li>保证深层网络更容易训练</li>
+<li>保留原始信息通路</li>
+</ul>
+<h3>4.5.2 层归一化（LayerNorm）</h3>
+<p>作用：</p>
+<ul>
+<li>稳定每层输入分布</li>
+<li>加快收敛</li>
+<li>提高训练稳定性</li>
+</ul>
+<hr>
+<h2>4.6 位置编码（Positional Encoding）</h2>
+<p>注意力本身只看 token 间关系，不感知顺序。</p>
+<p>因此：</p>
+<ul>
+<li><code class="notranslate">agent learns</code></li>
+<li><code class="notranslate">learns agent</code></li>
+</ul>
+<p>对纯注意力而言可能被看成相似结构。</p>
+<p>所以 Transformer 需要显式引入<strong>位置信息</strong>。</p>
+<h3>原始做法</h3>
+<p>使用固定的正弦 / 余弦位置编码：</p>
+<p>$$
+PE_{(pos,2i)}=\sin\left(\frac{pos}{10000^{2i/d_{\text{model}}}}\right)
+$$</p>
+<p>$$
+PE_{(pos,2i+1)}=\cos\left(\frac{pos}{10000^{2i/d_{\text{model}}}}\right)
+$$</p>
+<h3>作用</h3>
+<p>让模型知道：</p>
+<ul>
+<li>token 的绝对位置</li>
+<li>一定程度上的相对位置信息</li>
+</ul>
+<h3>现实补充</h3>
+<p>原章讲的是经典正弦位置编码。<br>
+但在今天的实际大模型中，<strong>位置机制仍然是关键问题</strong>，因为它直接影响：</p>
+<ul>
+<li>长上下文能力</li>
+<li>外推长度能力</li>
+<li>推理与生成稳定性</li>
+</ul>
+<hr>
+<h1>五、Encoder-Decoder 与 Decoder-Only</h1>
+<h2>5.1 完整 Transformer 的基本结构</h2>
+<p>经典 Transformer 一般分为：</p>
+<ul>
+<li><strong>Encoder</strong></li>
+<li><strong>Decoder</strong></li>
+</ul>
+<h3>Encoder 的作用</h3>
+<p>对输入序列做深度理解，形成上下文表示。</p>
+<h3>Decoder 的作用</h3>
+<p>基于上下文表示，自回归地生成输出序列。</p>
+<p>这种架构很适合：</p>
+<ul>
+<li>机器翻译</li>
+<li>摘要</li>
+<li>结构化输入到文本输出</li>
+</ul>
+<hr>
+<h2>5.2 Decoder-Only 架构</h2>
+<p>今天的大语言模型多数采用 <strong>Decoder-only</strong> 架构。</p>
+<p>核心思想：</p>
+<blockquote>
+<p><strong>语言生成的本质就是根据已有上下文，预测下一个 token。</strong></p>
+</blockquote>
+<p>因此只保留解码器即可。</p>
+<h3>工作方式：自回归生成</h3>
+<p>过程如下：</p>
+<ol>
+<li>输入已有文本</li>
+<li>预测下一个 token</li>
+<li>将预测结果拼回上下文</li>
+<li>再预测下一个 token</li>
+<li>不断重复直到结束</li>
+</ol>
+<p>这就是所谓的 <strong>Autoregressive（自回归）</strong>。</p>
+<hr>
+<h2>5.3 为什么 Decoder-Only 成为主流</h2>
+<p>这是本章最值得重点掌握的现代结论之一。</p>
+<h3>原因 1：目标统一</h3>
+<p>一个“预测下一个 token”的统一目标，可以覆盖很多任务：</p>
+<ul>
+<li>对话</li>
+<li>写作</li>
+<li>摘要</li>
+<li>问答</li>
+<li>代码生成</li>
+<li>工具调用</li>
+<li>Agent 规划输出</li>
+</ul>
+<h3>原因 2：训练简单且可扩展</h3>
+<p>相比复杂的 seq2seq 设计，Decoder-only 更统一，适合海量数据预训练。</p>
+<h3>原因 3：更符合通用生成范式</h3>
+<p>今天我们使用大模型时，大多数任务都可以转化为：</p>
+<blockquote>
+<p>给定上下文，让模型继续往后写。</p>
+</blockquote>
+<hr>
+<h2>5.4 掩码机制（Masking）</h2>
+<p>Decoder-only 里有一个关键点：<br>
+模型虽然在训练时能看到整个序列，但在预测某个位置时，<strong>不能偷看未来 token</strong>。</p>
+<p>因此需要使用<strong>因果掩码（causal mask）</strong>：</p>
+<ul>
+<li>屏蔽当前位置之后的 token</li>
+<li>保证每个位置只能关注自己左边的内容</li>
+</ul>
+<h3>本质</h3>
+<p>这保证了训练目标和实际生成过程保持一致。</p>
+<hr>
+<h2>5.5 现阶段最值得记住的架构结论</h2>
+<h3>历史脉络</h3>
+<ul>
+<li>N-gram：统计计数</li>
+<li>神经网络 LM：引入词向量</li>
+<li>RNN/LSTM：引入时序记忆</li>
+<li>Transformer：引入注意力与并行训练</li>
+<li>Decoder-only：成为现代通用生成模型主流</li>
+</ul>
+<p>为了真正理解 Transformer 的工作原理，最好的方法莫过于亲手实现它。</p>
+<div class="highlight highlight-source-python"><pre class="notranslate"><span class="pl-k">import</span> <span class="pl-s1">torch</span>
+<span class="pl-k">import</span> <span class="pl-s1">torch</span>.<span class="pl-s1">nn</span> <span class="pl-k">as</span> <span class="pl-s1">nn</span>
+<span class="pl-k">import</span> <span class="pl-s1">math</span>
+
+<span class="pl-k">class</span> <span class="pl-v">PositionalEncoding</span>(<span class="pl-s1">nn</span>.<span class="pl-c1">Module</span>):
+    <span class="pl-s">"""</span>
+<span class="pl-s">    为输入序列的词嵌入向量添加位置编码。</span>
+<span class="pl-s">    """</span>
+    <span class="pl-k">def</span> <span class="pl-en">__init__</span>(<span class="pl-s1">self</span>, <span class="pl-s1">d_model</span>: <span class="pl-smi">int</span>, <span class="pl-s1">dropout</span>: <span class="pl-smi">float</span> <span class="pl-c1">=</span> <span class="pl-c1">0.1</span>, <span class="pl-s1">max_len</span>: <span class="pl-smi">int</span> <span class="pl-c1">=</span> <span class="pl-c1">5000</span>):
+        <span class="pl-en">super</span>().<span class="pl-c1">__init__</span>()
+        <span class="pl-s1">self</span>.<span class="pl-c1">dropout</span> <span class="pl-c1">=</span> <span class="pl-s1">nn</span>.<span class="pl-c1">Dropout</span>(<span class="pl-s1">p</span><span class="pl-c1">=</span><span class="pl-s1">dropout</span>)
+
+        <span class="pl-c"># 创建一个足够长的位置编码矩阵</span>
+        <span class="pl-s1">position</span> <span class="pl-c1">=</span> <span class="pl-s1">torch</span>.<span class="pl-c1">arange</span>(<span class="pl-s1">max_len</span>).<span class="pl-c1">unsqueeze</span>(<span class="pl-c1">1</span>)
+        <span class="pl-s1">div_term</span> <span class="pl-c1">=</span> <span class="pl-s1">torch</span>.<span class="pl-c1">exp</span>(<span class="pl-s1">torch</span>.<span class="pl-c1">arange</span>(<span class="pl-c1">0</span>, <span class="pl-s1">d_model</span>, <span class="pl-c1">2</span>) <span class="pl-c1">*</span> (<span class="pl-c1">-</span><span class="pl-s1">math</span>.<span class="pl-c1">log</span>(<span class="pl-c1">10000.0</span>) <span class="pl-c1">/</span> <span class="pl-s1">d_model</span>))
+
+        <span class="pl-c"># pe (positional encoding) 的大小为 (max_len, d_model)</span>
+        <span class="pl-s1">pe</span> <span class="pl-c1">=</span> <span class="pl-s1">torch</span>.<span class="pl-c1">zeros</span>(<span class="pl-s1">max_len</span>, <span class="pl-s1">d_model</span>)
+
+        <span class="pl-c"># 偶数维度使用 sin, 奇数维度使用 cos</span>
+        <span class="pl-s1">pe</span>[:, <span class="pl-c1">0</span>::<span class="pl-c1">2</span>] <span class="pl-c1">=</span> <span class="pl-s1">torch</span>.<span class="pl-c1">sin</span>(<span class="pl-s1">position</span> <span class="pl-c1">*</span> <span class="pl-s1">div_term</span>)
+        <span class="pl-s1">pe</span>[:, <span class="pl-c1">1</span>::<span class="pl-c1">2</span>] <span class="pl-c1">=</span> <span class="pl-s1">torch</span>.<span class="pl-c1">cos</span>(<span class="pl-s1">position</span> <span class="pl-c1">*</span> <span class="pl-s1">div_term</span>)
+
+        <span class="pl-c"># 将 pe 注册为 buffer，这样它就不会被视为模型参数，但会随模型移动（例如 to(device)）</span>
+        <span class="pl-s1">self</span>.<span class="pl-c1">register_buffer</span>(<span class="pl-s">'pe'</span>, <span class="pl-s1">pe</span>.<span class="pl-c1">unsqueeze</span>(<span class="pl-c1">0</span>))
+
+    <span class="pl-k">def</span> <span class="pl-en">forward</span>(<span class="pl-s1">self</span>, <span class="pl-s1">x</span>: <span class="pl-s1">torch</span>.<span class="pl-c1">Tensor</span>) <span class="pl-c1">-&gt;</span> <span class="pl-s1">torch</span>.<span class="pl-c1">Tensor</span>:
+        <span class="pl-c"># x.size(1) 是当前输入的序列长度</span>
+        <span class="pl-c"># 将位置编码加到输入向量上</span>
+        <span class="pl-s1">x</span> <span class="pl-c1">=</span> <span class="pl-s1">x</span> <span class="pl-c1">+</span> <span class="pl-s1">self</span>.<span class="pl-c1">pe</span>[:, :<span class="pl-s1">x</span>.<span class="pl-c1">size</span>(<span class="pl-c1">1</span>)]
+        <span class="pl-k">return</span> <span class="pl-s1">self</span>.<span class="pl-c1">dropout</span>(<span class="pl-s1">x</span>)
+
+<span class="pl-k">class</span> <span class="pl-v">MultiHeadAttention</span>(<span class="pl-s1">nn</span>.<span class="pl-c1">Module</span>):
+    <span class="pl-s">"""</span>
+<span class="pl-s">    多头注意力机制模块</span>
+<span class="pl-s">    """</span>
+    <span class="pl-k">def</span> <span class="pl-en">__init__</span>(<span class="pl-s1">self</span>,<span class="pl-s1">d_model</span>,<span class="pl-s1">num_heads</span>):
+        <span class="pl-en">super</span>(<span class="pl-v">MultiHeadAttention</span>,<span class="pl-s1">self</span>).<span class="pl-c1">__init__</span>()
+        <span class="pl-k">assert</span> <span class="pl-s1">d_model</span> <span class="pl-c1">%</span> <span class="pl-s1">num_heads</span> <span class="pl-c1">==</span> <span class="pl-c1">0</span>, <span class="pl-s">"d_model 必须能被num_heads 整除"</span>
+
+        <span class="pl-s1">self</span>.<span class="pl-c1">d_model</span> <span class="pl-c1">=</span> <span class="pl-s1">d_model</span>
+        <span class="pl-s1">self</span>.<span class="pl-c1">num_heads</span> <span class="pl-c1">=</span> <span class="pl-s1">num_heads</span>
+        <span class="pl-s1">self</span>.<span class="pl-c1">d_k</span> <span class="pl-c1">=</span> <span class="pl-s1">d_model</span> <span class="pl-c1">//</span> <span class="pl-s1">num_heads</span>
+
+        <span class="pl-c"># 定义 Q, K, V 和输出的线性变换层</span>
+        <span class="pl-s1">self</span>.<span class="pl-c1">W_q</span> <span class="pl-c1">=</span> <span class="pl-s1">nn</span>.<span class="pl-c1">Linear</span>(<span class="pl-s1">d_model</span>, <span class="pl-s1">d_model</span>)
+        <span class="pl-s1">self</span>.<span class="pl-c1">W_k</span> <span class="pl-c1">=</span> <span class="pl-s1">nn</span>.<span class="pl-c1">Linear</span>(<span class="pl-s1">d_model</span>, <span class="pl-s1">d_model</span>)
+        <span class="pl-s1">self</span>.<span class="pl-c1">W_v</span> <span class="pl-c1">=</span> <span class="pl-s1">nn</span>.<span class="pl-c1">Linear</span>(<span class="pl-s1">d_model</span>, <span class="pl-s1">d_model</span>)
+        <span class="pl-s1">self</span>.<span class="pl-c1">W_o</span> <span class="pl-c1">=</span> <span class="pl-s1">nn</span>.<span class="pl-c1">Linear</span>(<span class="pl-s1">d_model</span>, <span class="pl-s1">d_model</span>)
+
+    <span class="pl-k">def</span> <span class="pl-en">scaled_dot_product_attention</span>(<span class="pl-s1">self</span>,<span class="pl-c1">Q</span>,<span class="pl-c1">K</span>,<span class="pl-c1">V</span>,<span class="pl-s1">mask</span><span class="pl-c1">=</span><span class="pl-c1">None</span>):
+        <span class="pl-c"># 1. 计算注意力得分 (Q x K^T)</span>
+        <span class="pl-s1">attn_scores</span> <span class="pl-c1">=</span> <span class="pl-s1">torch</span>.<span class="pl-c1">matmul</span>(<span class="pl-c1">Q</span>,<span class="pl-c1">K</span>.<span class="pl-c1">transpose</span>(<span class="pl-c1">-</span><span class="pl-c1">2</span>,<span class="pl-c1">-</span><span class="pl-c1">1</span>)) <span class="pl-c1">/</span> <span class="pl-s1">math</span>.<span class="pl-c1">sqrt</span>(<span class="pl-s1">self</span>.<span class="pl-c1">d_k</span>)
+
+        <span class="pl-c"># 2. 应用掩码 (如果提供)</span>
+        <span class="pl-k">if</span> <span class="pl-s1">mask</span> <span class="pl-c1"><span class="pl-c1">is</span> <span class="pl-c1">not</span></span> <span class="pl-c1">None</span>:
+            <span class="pl-c"># 将掩码中为 0 的位置设置为一个非常小的负数，这样 softmax 后会接近 0</span>
+            <span class="pl-s1">attn_scores</span> <span class="pl-c1">=</span> <span class="pl-s1">attn_scores</span>.<span class="pl-c1">masked_fill</span>(<span class="pl-s1">mask</span><span class="pl-c1">==</span><span class="pl-c1">0</span>,<span class="pl-c1">-</span><span class="pl-c1">1e9</span>)
+
+        <span class="pl-c"># 3. 计算注意力权重 (Softmax)</span>
+        <span class="pl-s1">attn_probs</span> <span class="pl-c1">=</span> <span class="pl-s1">torch</span>.<span class="pl-c1">softmax</span>(<span class="pl-s1">attn_scores</span>,<span class="pl-s1">dim</span><span class="pl-c1">=</span><span class="pl-c1">-</span><span class="pl-c1">1</span>)
+
+        <span class="pl-c"># 4. 加权求和 (权重 * V)</span>
+        <span class="pl-s1">output</span> <span class="pl-c1">=</span> <span class="pl-s1">torch</span>.<span class="pl-c1">matmul</span>(<span class="pl-s1">attn_probs</span>,<span class="pl-c1">V</span>)
+        <span class="pl-k">return</span> <span class="pl-s1">output</span>
+
+    <span class="pl-k">def</span> <span class="pl-en">split_heads</span>(<span class="pl-s1">self</span>, <span class="pl-s1">x</span>):
+        <span class="pl-c"># 将输入 x 的形状从 (batch_size, seq_length, d_model)</span>
+        <span class="pl-c"># 变换为 (batch_size, num_heads, seq_length, d_k)</span>
+        <span class="pl-s1">batch_size</span>,<span class="pl-s1">seq_length</span>,<span class="pl-s1">d_model</span> <span class="pl-c1">=</span> <span class="pl-s1">x</span>.<span class="pl-c1">size</span>()
+        <span class="pl-k">return</span> <span class="pl-s1">x</span>.<span class="pl-c1">view</span>(<span class="pl-s1">batch_size</span>,<span class="pl-s1">seq_length</span>,<span class="pl-s1">self</span>.<span class="pl-c1">num_heads</span>,<span class="pl-s1">self</span>.<span class="pl-c1">d_k</span>).<span class="pl-c1">transpose</span>(<span class="pl-c1">1</span>,<span class="pl-c1">2</span>)
+
+    <span class="pl-k">def</span> <span class="pl-en">combine_heads</span>(<span class="pl-s1">self</span>, <span class="pl-s1">x</span>):
+        <span class="pl-c"># 将输入 x 的形状从 (batch_size, num_heads, seq_length, d_k)</span>
+        <span class="pl-c"># 变回 (batch_size, seq_length, d_model)</span>
+        <span class="pl-s1">batch_size</span>,<span class="pl-s1">num_heads</span>,<span class="pl-s1">seq_length</span>,<span class="pl-s1">d_k</span> <span class="pl-c1">=</span> <span class="pl-s1">x</span>.<span class="pl-c1">size</span>()
+        <span class="pl-k">return</span> <span class="pl-s1">x</span>.<span class="pl-c1">transpose</span>(<span class="pl-c1">1</span>,<span class="pl-c1">2</span>).<span class="pl-c1">contiguous</span>().<span class="pl-c1">view</span>(<span class="pl-s1">batch_size</span>,<span class="pl-s1">seq_length</span>,<span class="pl-s1">self</span>.<span class="pl-c1">d_model</span>)
+
+    <span class="pl-k">def</span> <span class="pl-en">forward</span>(<span class="pl-s1">self</span>, <span class="pl-c1">Q</span>, <span class="pl-c1">K</span>, <span class="pl-c1">V</span>, <span class="pl-s1">mask</span><span class="pl-c1">=</span><span class="pl-c1">None</span>):
+        <span class="pl-c"># 1. 对 Q, K, V 进行线性变换</span>
+        <span class="pl-c1">Q</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">split_heads</span>(<span class="pl-s1">self</span>.<span class="pl-c1">W_q</span>(<span class="pl-c1">Q</span>))
+        <span class="pl-c1">K</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">split_heads</span>(<span class="pl-s1">self</span>.<span class="pl-c1">W_k</span>(<span class="pl-c1">K</span>))
+        <span class="pl-c1">V</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">split_heads</span>(<span class="pl-s1">self</span>.<span class="pl-c1">W_v</span>(<span class="pl-c1">V</span>))
+
+        <span class="pl-c"># 2. 计算缩放点积注意力</span>
+        <span class="pl-s1">attn_output</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">scaled_dot_product_attention</span>(<span class="pl-c1">Q</span>,<span class="pl-c1">K</span>,<span class="pl-c1">V</span>,<span class="pl-s1">mask</span>)
+
+        <span class="pl-c"># 3. 合并多头输出并进行最终的线性变换</span>
+        <span class="pl-s1">output</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">W_o</span>(<span class="pl-s1">self</span>.<span class="pl-c1">combine_heads</span>(<span class="pl-s1">attn_output</span>))
+        <span class="pl-k">return</span> <span class="pl-s1">output</span>
+
+
+
+<span class="pl-k">class</span> <span class="pl-v">PositionWiseFeedForward</span>(<span class="pl-s1">nn</span>.<span class="pl-c1">Module</span>):
+    <span class="pl-s">"""</span>
+<span class="pl-s">    位置前馈网络模块</span>
+<span class="pl-s">    """</span>
+    <span class="pl-k">def</span> <span class="pl-en">__init__</span>(<span class="pl-s1">self</span>,<span class="pl-s1">d_model</span>,<span class="pl-s1">d_ff</span>,<span class="pl-s1">dropout</span><span class="pl-c1">=</span><span class="pl-c1">0.1</span>):
+        <span class="pl-en">super</span>(<span class="pl-v">PositionWiseFeedForward</span>,<span class="pl-s1">self</span>).<span class="pl-c1">__init__</span>()
+        <span class="pl-s1">self</span>.<span class="pl-c1">linear1</span> <span class="pl-c1">=</span> <span class="pl-s1">nn</span>.<span class="pl-c1">Linear</span>(<span class="pl-s1">d_model</span>,<span class="pl-s1">d_ff</span>)
+        <span class="pl-s1">self</span>.<span class="pl-c1">dropout</span> <span class="pl-c1">=</span> <span class="pl-s1">nn</span>.<span class="pl-c1">Dropout</span>(<span class="pl-s1">dropout</span>)
+        <span class="pl-s1">self</span>.<span class="pl-c1">linear2</span> <span class="pl-c1">=</span> <span class="pl-s1">nn</span>.<span class="pl-c1">Linear</span>(<span class="pl-s1">d_ff</span>,<span class="pl-s1">d_model</span>)
+        <span class="pl-s1">self</span>.<span class="pl-c1">relu</span> <span class="pl-c1">=</span> <span class="pl-s1">nn</span>.<span class="pl-c1">ReLU</span>()
+
+    <span class="pl-k">def</span> <span class="pl-en">forward</span>(<span class="pl-s1">self</span>, <span class="pl-s1">x</span>):
+        <span class="pl-c"># x 形状: (batch_size, seq_len, d_model)</span>
+        <span class="pl-s1">x</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">linear1</span>(<span class="pl-s1">x</span>)
+        <span class="pl-s1">x</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">relu</span>(<span class="pl-s1">x</span>)
+        <span class="pl-s1">x</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">dropout</span>(<span class="pl-s1">x</span>)
+        <span class="pl-s1">x</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">linear2</span>(<span class="pl-s1">x</span>)
+        <span class="pl-c"># 最终输出形状: (batch_size, seq_len, d_model)</span>
+        <span class="pl-k">return</span> <span class="pl-s1">x</span>
+
+<span class="pl-c"># --- 编码器核心层 ---</span>
+
+<span class="pl-k">class</span> <span class="pl-v">EncoderLayer</span>(<span class="pl-s1">nn</span>.<span class="pl-c1">Module</span>):
+    <span class="pl-k">def</span> <span class="pl-en">__init__</span>(<span class="pl-s1">self</span>,<span class="pl-s1">d_model</span>,<span class="pl-s1">num_heads</span>,<span class="pl-s1">d_ff</span>,<span class="pl-s1">dropout</span>):
+        <span class="pl-en">super</span>(<span class="pl-v">EncoderLayer</span>,<span class="pl-s1">self</span>).<span class="pl-c1">__init__</span>()
+        <span class="pl-s1">self</span>.<span class="pl-c1">self_attn</span> <span class="pl-c1">=</span> <span class="pl-en">MultiHeadAttention</span>() <span class="pl-c">#待实现</span>
+        <span class="pl-s1">self</span>.<span class="pl-c1">feed_forward</span> <span class="pl-c1">=</span> <span class="pl-en">PositionWiseFeedForward</span>() 
+        <span class="pl-s1">self</span>.<span class="pl-c1">norm1</span> <span class="pl-c1">=</span> <span class="pl-s1">nn</span>.<span class="pl-c1">LayerNorm</span>(<span class="pl-s1">d_model</span>)
+        <span class="pl-s1">self</span>.<span class="pl-c1">norm2</span> <span class="pl-c1">=</span> <span class="pl-s1">nn</span>.<span class="pl-c1">LayerNorm</span>(<span class="pl-s1">d_model</span>)
+        <span class="pl-s1">self</span>.<span class="pl-c1">dropout</span> <span class="pl-c1">=</span> <span class="pl-s1">nn</span>.<span class="pl-c1">Dropout</span>(<span class="pl-s1">dropout</span>)
+
+    <span class="pl-k">def</span> <span class="pl-en">forward</span>(<span class="pl-s1">self</span>,<span class="pl-s1">x</span>,<span class="pl-s1">mask</span>):
+        <span class="pl-c"># 残差连接与层归一化将在 3.1.2.4 节中详细解释</span>
+        <span class="pl-c"># 1. 多头自注意力</span>
+        <span class="pl-s1">attn_output</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">self_attn</span>(<span class="pl-s1">x</span>,<span class="pl-s1">x</span>,<span class="pl-s1">x</span>,<span class="pl-s1">mask</span>)
+        <span class="pl-s1">x</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">norm1</span>(<span class="pl-s1">x</span><span class="pl-c1">+</span><span class="pl-s1">self</span>.<span class="pl-c1">dropout</span>(<span class="pl-s1">attn_output</span>))
+
+        <span class="pl-c"># 2. 前馈网络</span>
+        <span class="pl-s1">ff_output</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">feed_forward</span>(<span class="pl-s1">x</span>)
+        <span class="pl-s1">x</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">norm2</span>(<span class="pl-s1">x</span><span class="pl-c1">+</span><span class="pl-s1">self</span>.<span class="pl-c1">dropout</span>(<span class="pl-s1">ff_output</span>))
+
+        <span class="pl-k">return</span> <span class="pl-s1">x</span>
+
+<span class="pl-c"># --- 解码器核心层 ---</span>
+
+<span class="pl-k">class</span> <span class="pl-v">DecoderLayer</span>(<span class="pl-s1">nn</span>.<span class="pl-c1">Module</span>):
+    <span class="pl-k">def</span> <span class="pl-en">__init__</span>(<span class="pl-s1">self</span>,<span class="pl-s1">d_model</span>,<span class="pl-s1">num_heads</span>,<span class="pl-s1">d_ff</span>,<span class="pl-s1">dropout</span>):
+        <span class="pl-en">super</span>(<span class="pl-v">DecoderLayer</span>,<span class="pl-s1">self</span>).<span class="pl-c1">__init__</span>()
+        <span class="pl-s1">self</span>.<span class="pl-c1">self_attn</span> <span class="pl-c1">=</span> <span class="pl-en">MultiHeadAttention</span>()
+        <span class="pl-s1">self</span>.<span class="pl-c1">cross_attn</span> <span class="pl-c1">=</span> <span class="pl-en">MultiHeadAttention</span>()
+        <span class="pl-s1">self</span>.<span class="pl-c1">feed_forward</span> <span class="pl-c1">=</span> <span class="pl-en">PositionWiseFeedForward</span>()
+        <span class="pl-s1">self</span>.<span class="pl-c1">norm1</span> <span class="pl-c1">=</span> <span class="pl-s1">nn</span>.<span class="pl-c1">LayerNorm</span>(<span class="pl-s1">d_model</span>)
+        <span class="pl-s1">self</span>.<span class="pl-c1">norm2</span> <span class="pl-c1">=</span> <span class="pl-s1">nn</span>.<span class="pl-c1">LayerNorm</span>(<span class="pl-s1">d_model</span>)
+        <span class="pl-s1">self</span>.<span class="pl-c1">norm3</span> <span class="pl-c1">=</span> <span class="pl-s1">nn</span>.<span class="pl-c1">LayerNorm</span>(<span class="pl-s1">d_model</span>)
+        <span class="pl-s1">self</span>.<span class="pl-c1">dropout</span> <span class="pl-c1">=</span> <span class="pl-s1">nn</span>.<span class="pl-c1">Dropout</span>(<span class="pl-s1">dropout</span>)
+
+    <span class="pl-k">def</span> <span class="pl-en">forward</span>(<span class="pl-s1">self</span>,<span class="pl-s1">x</span>,<span class="pl-s1">encoder_output</span>,<span class="pl-s1">src_mask</span>,<span class="pl-s1">tgt_mask</span>):
+        <span class="pl-c"># 1. 掩码多头自注意力 (对自己)</span>
+        <span class="pl-s1">attn_output</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">self_attn</span>(<span class="pl-s1">x</span>,<span class="pl-s1">x</span>,<span class="pl-s1">x</span>,<span class="pl-s1">tgt_mask</span>)
+        <span class="pl-s1">x</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">norm1</span>(<span class="pl-s1">x</span> <span class="pl-c1">+</span> <span class="pl-s1">self</span>.<span class="pl-c1">dropout</span>(<span class="pl-s1">attn_output</span>))
+        
+        <span class="pl-c"># 2. 交叉注意力 (对编码器输出)</span>
+        <span class="pl-s1">corss_attn_output</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">cross_attn</span>(<span class="pl-s1">x</span>, <span class="pl-s1">encoder_output</span>, <span class="pl-s1">encoder_output</span>, <span class="pl-s1">src_mask</span>)
+        <span class="pl-s1">x</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">norm2</span>(<span class="pl-s1">x</span> <span class="pl-c1">+</span> <span class="pl-s1">self</span>.<span class="pl-c1">dropout</span>(<span class="pl-s1">corss_attn_output</span>))
+
+        <span class="pl-c">#3.前馈网络</span>
+        <span class="pl-s1">ff_output</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">feed_forward</span>(<span class="pl-s1">x</span>)
+        <span class="pl-s1">x</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">norm3</span>(<span class="pl-s1">x</span> <span class="pl-c1">+</span> <span class="pl-s1">self</span>.<span class="pl-c1">dropout</span>(<span class="pl-s1">ff_output</span>))
+
+        <span class="pl-k">return</span> <span class="pl-s1">x</span></pre></div>
+<h3>工程上最重要的一句话</h3>
+<blockquote>
+<p><strong>今天做通用大模型 / 智能体，优先理解 Decoder-only Transformer，而不是把精力放在 RNN。</strong></p>
+</blockquote>
+<hr>
+<h1>六、提示工程（Prompt Engineering）</h1>
+<h2>6.1 Prompt 的本质</h2>
+<p>如果把模型看作一个非常强的概率生成器，那么 Prompt 就是：</p>
+<blockquote>
+<p><strong>给这个生成器设定任务边界、角色、格式和上下文的方式。</strong></p>
+</blockquote>
+<p>对于智能体来说，Prompt 直接影响：</p>
+<ul>
+<li>任务理解</li>
+<li>输出风格</li>
+<li>工具调用意图</li>
+<li>协作模式</li>
+<li>稳定性</li>
+</ul>
+<hr>
+<h2>6.2 采样参数：控制输出风格与稳定性</h2>
+<p>这是今天非常实用的一部分。</p>
+<p>模型并不是总选概率最大的 token，它可以通过采样参数改变输出风格。</p>
+<hr>
+<h3>6.2.1 Temperature</h3>
+<p>Softmax 概率分布会受到温度参数影响。</p>
+<h4>作用</h4>
+<ul>
+<li><strong>低温度</strong>：分布更尖锐，输出更保守、更稳定</li>
+<li><strong>高温度</strong>：分布更平滑，输出更多样、更发散</li>
+</ul>
+<h4>使用建议</h4>
+<ul>
+<li>事实问答 / 信息抽取 / 代码修复：低温</li>
+<li>创意写作 / 头脑风暴 / 文案生成：高温</li>
+</ul>
+<h4>经验理解</h4>
+<ul>
+<li><code class="notranslate">temperature = 0</code>：几乎最确定</li>
+<li><code class="notranslate">0.2 ~ 0.5</code>：偏稳定</li>
+<li><code class="notranslate">0.7 ~ 1.0</code>：平衡创造性与可控性</li>
+<li>更高：更发散，但也更容易跑偏</li>
+</ul>
+<hr>
+<h3>6.2.2 Top-k</h3>
+<p>先按概率排序，只保留前 k 个 token，再重新归一化采样。</p>
+<h4>特点</h4>
+<ul>
+<li>直接限制候选集规模</li>
+<li><code class="notranslate">k=1</code> 时退化为贪心解码</li>
+</ul>
+<h4>适合</h4>
+<ul>
+<li>需要控制输出随机性的场景</li>
+</ul>
+<hr>
+<h3>6.2.3 Top-p（核采样）</h3>
+<p>不固定保留多少个 token，而是：</p>
+<ul>
+<li>从高概率 token 开始累计</li>
+<li>直到概率和达到阈值 p</li>
+<li>用这个最小集合做采样</li>
+</ul>
+<h4>特点</h4>
+<ul>
+<li>相比 Top-k，更能动态适应概率分布</li>
+<li>对“长尾”分布更灵活</li>
+</ul>
+<hr>
+<h3>6.2.4 参数选择经验</h3>
+<p>通常：</p>
+<ul>
+<li><code class="notranslate">Top-k</code> 与 <code class="notranslate">Top-p</code> 二选一即可</li>
+<li>如果强调稳定性，优先低温</li>
+<li>如果强调自然多样性，常用 <code class="notranslate">Top-p</code></li>
+<li><code class="notranslate">temperature=0</code> 时，随机性几乎消失，Top-k / Top-p 的意义也会显著降低</li>
+</ul>
+<h3>实践结论</h3>
+<p>采样参数不是“调味品”，而是直接影响系统行为的控制杆。</p>
+<hr>
+<h2>6.3 Zero-shot / One-shot / Few-shot</h2>
+<p>这是提示设计的经典三种方式。</p>
+<h3>6.3.1 Zero-shot</h3>
+<p>不给示例，直接下指令。</p>
+<h4>优点</h4>
+<ul>
+<li>简洁</li>
+<li>成本低</li>
+<li>通用</li>
+</ul>
+<h4>缺点</h4>
+<ul>
+<li>对复杂格式任务不够稳</li>
+</ul>
+<hr>
+<h3>6.3.2 One-shot</h3>
+<p>给一个示例，让模型模仿格式。</p>
+<h4>作用</h4>
+<ul>
+<li>帮模型理解输出样式</li>
+<li>减少格式错误</li>
+</ul>
+<hr>
+<h3>6.3.3 Few-shot</h3>
+<p>给多个示例，覆盖边界情况。</p>
+<h4>优点</h4>
+<ul>
+<li>对分类、抽取、结构化输出更稳定</li>
+<li>对复杂任务更容易建立“隐式规则”</li>
+</ul>
+<h4>缺点</h4>
+<ul>
+<li>占上下文</li>
+<li>增加 token 成本</li>
+</ul>
+<hr>
+<h2>6.4 提示工程的现实理解</h2>
+<p>在今天的智能体系统中，Prompt 往往不仅仅是“一句话需求”，而是一个组合结构：</p>
+<ol>
+<li>系统角色设定</li>
+<li>任务描述</li>
+<li>输出格式约束</li>
+<li>可用工具说明</li>
+<li>示例</li>
+<li>外部检索到的上下文</li>
+<li>历史对话</li>
+</ol>
+<h3>重点结论</h3>
+<p>Prompt 工程的核心并不是“写得华丽”，而是：</p>
+<blockquote>
+<p><strong>把任务边界、上下文、格式要求和成功标准写清楚。</strong></p>
+</blockquote>
+<hr>
+<h1>七、文本分词（Tokenization）</h1>
+<h2>7.1 为什么必须分词</h2>
+<p>计算机不能直接处理自然语言文本，只能处理数字。<br>
+因此文本必须先变成 token，再映射成 ID。</p>
+<p>也就是说：</p>
+<blockquote>
+<p><strong>模型真正看到的不是“句子”，而是 token 序列。</strong></p>
+</blockquote>
+<hr>
+<h2>7.2 为什么不能直接按“字”或“词”处理</h2>
+<h3>按字符切分的问题</h3>
+<ul>
+<li>序列太长</li>
+<li>语义粒度太小</li>
+<li>建模效率低</li>
+</ul>
+<h3>按单词切分的问题</h3>
+<ul>
+<li>词表会非常大</li>
+<li>未登录词（OOV）问题严重</li>
+<li>新词、罕见词难处理</li>
+</ul>
+<hr>
+<h2>7.3 子词分词（Subword Tokenization）</h2>
+<p>现代大模型通常采用<strong>子词分词</strong>。</p>
+<p>核心思想：</p>
+<blockquote>
+<p>它的核心思想是：将常见的词（如 "agent"）保留为完整的词元，同时将不常见的词（如 "Tokenization"）拆分成多个有意义的子词片段（如 "Token" 和 "ization"）。这样既控制了词表的大小，又能让模型通过组合子词来理解和生成新词。</p>
+</blockquote>
+<p>例如：</p>
+<ul>
+<li>常见词：直接保留</li>
+<li>罕见长词：拆成多个子词</li>
+</ul>
+<h3>好处</h3>
+<ol>
+<li>控制词表规模</li>
+<li>减少 OOV 问题</li>
+<li>兼顾表达能力和泛化能力</li>
+<li>可以通过组合处理新词</li>
+</ol>
+<hr>
+<h2>7.4 BPE（Byte Pair Encoding）</h2>
+<p>BPE 是最常见的子词算法之一，也是学习 tokenizer 时最值得掌握的算法。</p>
+<h3>基本过程</h3>
+<ol>
+<li>初始词表设为字符级</li>
+<li>统计语料中相邻 token 对出现频率</li>
+<li>找到最高频的一对，合并成新 token</li>
+<li>重复，直到词表达到预设大小</li>
+</ol>
+<h3>本质</h3>
+<p>BPE 是一个“从字符逐步学习常见片段”的贪心合并过程。</p>
+<hr>
+<h2>7.5 WordPiece 与 SentencePiece</h2>
+<h3>WordPiece</h3>
+<ul>
+<li>与 BPE 类似</li>
+<li>合并标准更偏向提升语言模型整体概率</li>
+</ul>
+<h3>SentencePiece</h3>
+<ul>
+<li>把空格也作为普通符号</li>
+<li>分词与解码更可逆</li>
+<li>对多语言更友好</li>
+</ul>
+<hr>
+<h2>7.6 为什么 Tokenizer 对开发者很重要</h2>
+<p>这一点在实际开发里非常关键。</p>
+<h3>影响 1：成本</h3>
+<p>很多 API 按 token 计费，不是按“字数”或“句子数”计费。</p>
+<h3>影响 2：上下文长度</h3>
+<p>模型能处理的是 token 数，不是自然语言字符数。</p>
+<h3>影响 3：输出稳定性</h3>
+<p>格式化文本、代码、表格、JSON，在不同 tokenizer 下切分效果不同，会影响生成表现。</p>
+<h3>影响 4：多语言表现</h3>
+<p>中文、英文、混合文本、专业术语，在分词后的 token 密度可能差异很大。</p>
+<h3>一个非常实用的结论</h3>
+<blockquote>
+<p>做 LLM 应用时，要逐渐养成“按 token 思考”的习惯，而不是只按字符或字数思考。</p>
+</blockquote>
+<hr>
+<h1>八、调用与部署开源大语言模型</h1>
+<h2>8.1 为什么不只用 API</h2>
+<p>通过 API 调模型当然方便，但并不是唯一方式。<br>
+本地部署开源模型的价值在于：</p>
+<ol>
+<li><strong>隐私与数据安全</strong></li>
+<li><strong>离线使用</strong></li>
+<li><strong>更强可控性</strong></li>
+<li><strong>可能更低的长期成本</strong></li>
+<li><strong>便于定制化与微调</strong></li>
+</ol>
+<hr>
+<h2>8.2 Hugging Face Transformers 的意义</h2>
+<p>Transformers 提供了标准化接口来：</p>
+<ul>
+<li>加载模型</li>
+<li>加载 tokenizer</li>
+<li>进行推理</li>
+<li>进行微调</li>
+<li>统一不同模型的使用方式</li>
+</ul>
+<p>它是开源模型生态的核心基础设施之一。</p>
+<hr>
+<h2>8.3 本章示例的意义</h2>
+<p>一个小参数量对话模型做本地运行示例，目的是让读者先理解完整调用链路，而不是追求极限性能。<br>
+在 <code class="notranslate">transformers</code> 库中，我们通常使用 <code class="notranslate">AutoModelForCausalLM</code> 和 <code class="notranslate">AutoTokenizer</code> 这两个类来自动加载与模型匹配的权重和分词器。下面这段代码会自动从 Hugging Face Hub 下载所需的模型文件和分词器配置，这可能需要一些时间，具体取决于你的网络速度。</p>
+<div class="highlight highlight-source-python"><pre class="notranslate"><span class="pl-k">import</span> <span class="pl-s1">torch</span>
+<span class="pl-k">from</span> <span class="pl-s1">transformers</span> <span class="pl-k">import</span> <span class="pl-v">AutoModelForCausalLM</span>, <span class="pl-v">AutoTokenizer</span>
+
+<span class="pl-c"># 指定模型ID</span>
+<span class="pl-s1">model_id</span> <span class="pl-c1">=</span> <span class="pl-s">"Qwen/Qwen1.5-0.5B-Chat"</span>
+
+<span class="pl-c"># 设置设备，优先使用GPU</span>
+<span class="pl-s1">device</span> <span class="pl-c1">=</span> <span class="pl-s">"cuda"</span> <span class="pl-k">if</span> <span class="pl-s1">torch</span>.<span class="pl-c1">cuda</span>.<span class="pl-c1">is_available</span>() <span class="pl-k">else</span> <span class="pl-s">"cpu"</span>
+<span class="pl-en">print</span>(<span class="pl-s">f"Using device: <span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">device</span><span class="pl-kos">}</span></span>"</span>)
+
+<span class="pl-c"># 加载分词器</span>
+<span class="pl-s1">tokenizer</span> <span class="pl-c1">=</span> <span class="pl-v">AutoTokenizer</span>.<span class="pl-c1">from_pretrained</span>(<span class="pl-s1">model_id</span>)
+
+<span class="pl-c"># 加载模型，并将其移动到指定设备</span>
+<span class="pl-s1">model</span> <span class="pl-c1">=</span> <span class="pl-v">AutoModelForCausalLM</span>.<span class="pl-c1">from_pretrained</span>(<span class="pl-s1">model_id</span>).<span class="pl-c1">to</span>(<span class="pl-s1">device</span>)
+
+<span class="pl-en">print</span>(<span class="pl-s">"模型和分词器加载完成！"</span>)</pre></div>
+<p>我们来创建一个对话提示，Qwen1.5-Chat 模型遵循特定的对话模板。然后，可以使用上一步加载的 <code class="notranslate">tokenizer</code> 将文本提示转换为模型能够理解的数字 ID（即 Token ID）。</p>
+<div class="highlight highlight-source-python"><pre class="notranslate"><span class="pl-c"># 准备对话输入</span>
+<span class="pl-s1">messages</span> <span class="pl-c1">=</span> [
+    {<span class="pl-s">"role"</span>: <span class="pl-s">"system"</span>, <span class="pl-s">"content"</span>: <span class="pl-s">"You are a helpful assistant."</span>},
+    {<span class="pl-s">"role"</span>: <span class="pl-s">"user"</span>, <span class="pl-s">"content"</span>: <span class="pl-s">"你好，请介绍你自己。"</span>}
+]
+
+<span class="pl-c"># 使用分词器的模板格式化输入</span>
+<span class="pl-s1">text</span> <span class="pl-c1">=</span> <span class="pl-s1">tokenizer</span>.<span class="pl-c1">apply_chat_template</span>(
+    <span class="pl-s1">messages</span>,
+    <span class="pl-s1">tokenize</span><span class="pl-c1">=</span><span class="pl-c1">False</span>,
+    <span class="pl-s1">add_generation_prompt</span><span class="pl-c1">=</span><span class="pl-c1">True</span>
+)
+
+<span class="pl-c"># 编码输入文本</span>
+<span class="pl-s1">model_inputs</span> <span class="pl-c1">=</span> <span class="pl-en">tokenizer</span>([<span class="pl-s1">text</span>], <span class="pl-s1">return_tensors</span><span class="pl-c1">=</span><span class="pl-s">"pt"</span>).<span class="pl-c1">to</span>(<span class="pl-s1">device</span>)
+
+<span class="pl-en">print</span>(<span class="pl-s">"编码后的输入文本:"</span>)
+<span class="pl-en">print</span>(<span class="pl-s1">model_inputs</span>)
+
+<span class="pl-c1">&gt;</span><span class="pl-c1">&gt;&gt;</span>
+{<span class="pl-s">'input_ids'</span>: <span class="pl-en">tensor</span>([[<span class="pl-c1">151644</span>, <span class="pl-c1">8948</span>, <span class="pl-c1">198</span>, <span class="pl-c1">2610</span>, <span class="pl-c1">525</span>, <span class="pl-c1">264</span>,  <span class="pl-c1">10950</span>, <span class="pl-c1">17847</span>, <span class="pl-c1">13</span>,<span class="pl-c1">151645</span>, <span class="pl-c1">198</span>, <span class="pl-c1">151644</span>, <span class="pl-c1">872</span>, <span class="pl-c1">198</span>, <span class="pl-c1">108386</span>, <span class="pl-c1">37945</span>, <span class="pl-c1">100157</span>, <span class="pl-c1">107828</span>,<span class="pl-c1">1773</span>, <span class="pl-c1">151645</span>, <span class="pl-c1">198</span>, <span class="pl-c1">151644</span>, <span class="pl-c1">77091</span>, <span class="pl-c1">198</span>]], <span class="pl-s1">device</span><span class="pl-c1">=</span><span class="pl-s">'cuda:0'</span>), <span class="pl-s">'attention_mask'</span>: <span class="pl-en">tensor</span>([[<span class="pl-c1">1</span>, <span class="pl-c1">1</span>, <span class="pl-c1">1</span>, <span class="pl-c1">1</span>, <span class="pl-c1">1</span>, <span class="pl-c1">1</span>, <span class="pl-c1">1</span>, <span class="pl-c1">1</span>, <span class="pl-c1">1</span>, <span class="pl-c1">1</span>, <span class="pl-c1">1</span>, <span class="pl-c1">1</span>, <span class="pl-c1">1</span>, <span class="pl-c1">1</span>, <span class="pl-c1">1</span>, <span class="pl-c1">1</span>, <span class="pl-c1">1</span>, <span class="pl-c1">1</span>, <span class="pl-c1">1</span>, <span class="pl-c1">1</span>, <span class="pl-c1">1</span>, <span class="pl-c1">1</span>, <span class="pl-c1">1</span>, <span class="pl-c1">1</span>]],
+       <span class="pl-s1">device</span><span class="pl-c1">=</span><span class="pl-s">'cuda:0'</span>)}</pre></div>
+<p>现在可以调用模型的 <code class="notranslate">generate()</code> 方法来生成回答了。模型会输出一系列 Token ID，这代表了它的回答。</p>
+<p>最后，我们需要使用分词器的 <code class="notranslate">decode()</code> 方法，将这些数字 ID 翻译回人类可以阅读的文本。</p>
+<div class="highlight highlight-source-python"><pre class="notranslate"><span class="pl-c"># 使用模型生成回答</span>
+<span class="pl-c"># max_new_tokens 控制了模型最多能生成多少个新的Token</span>
+<span class="pl-s1">generated_ids</span> <span class="pl-c1">=</span> <span class="pl-s1">model</span>.<span class="pl-c1">generate</span>(
+    <span class="pl-s1">model_inputs</span>.<span class="pl-c1">input_ids</span>,
+    <span class="pl-s1">max_new_tokens</span><span class="pl-c1">=</span><span class="pl-c1">512</span>
+)
+
+<span class="pl-c"># 将生成的 Token ID 截取掉输入部分</span>
+<span class="pl-c"># 这样我们只解码模型新生成的部分</span>
+<span class="pl-s1">generated_ids</span> <span class="pl-c1">=</span> [
+    <span class="pl-s1">output_ids</span>[<span class="pl-en">len</span>(<span class="pl-s1">input_ids</span>):] <span class="pl-k">for</span> <span class="pl-s1">input_ids</span>, <span class="pl-s1">output_ids</span> <span class="pl-c1">in</span> <span class="pl-en">zip</span>(<span class="pl-s1">model_inputs</span>.<span class="pl-c1">input_ids</span>, <span class="pl-s1">generated_ids</span>)
+]
+
+<span class="pl-c"># 解码生成的 Token ID</span>
+<span class="pl-s1">response</span> <span class="pl-c1">=</span> <span class="pl-s1">tokenizer</span>.<span class="pl-c1">batch_decode</span>(<span class="pl-s1">generated_ids</span>, <span class="pl-s1">skip_special_tokens</span><span class="pl-c1">=</span><span class="pl-c1">True</span>)[<span class="pl-c1">0</span>]
+
+<span class="pl-en">print</span>(<span class="pl-s">"<span class="pl-cce">\n</span>模型的回答:"</span>)
+<span class="pl-en">print</span>(<span class="pl-s1">response</span>)
+
+<span class="pl-c1">&gt;</span><span class="pl-c1">&gt;&gt;</span>
+<span class="pl-s1">我叫通义千问</span>，<span class="pl-s1">是由阿里云研发的预训练语言模型</span>，<span class="pl-s1">可以回答问题</span>、<span class="pl-s1">创作文字</span>，<span class="pl-s1">还能表达观点</span>、<span class="pl-s1">撰写代码</span>。<span class="pl-s1">我主要的功能是在多个领域提</span>
+<span class="pl-s1">供帮助</span>，<span class="pl-s1">包括但不限于</span>:<span class="pl-s1">语言理解</span>、<span class="pl-s1">文本生成</span>、<span class="pl-s1">机器翻译</span>、<span class="pl-s1">问答系统等</span>。<span class="pl-smi">有什么我可以帮到你的吗</span>？</pre></div>
+<p>从学习角度，本节重点不在于“某个具体模型版本”，而在于掌握下面这条通路：</p>
+<ol>
+<li>选择模型</li>
+<li>下载模型权重和 tokenizer</li>
+<li>构造输入</li>
+<li>调用生成接口</li>
+<li>调整采样参数</li>
+<li>观察输出差异</li>
+</ol>
+<hr>
+<h2>8.4 学习本地部署时应重点掌握什么</h2>
+<h3>必须掌握</h3>
+<ul>
+<li><code class="notranslate">tokenizer</code> 的作用</li>
+<li><code class="notranslate">model.generate()</code> 的基本逻辑</li>
+<li><code class="notranslate">max_new_tokens</code>、<code class="notranslate">temperature</code>、<code class="notranslate">top_p</code> 等参数影响</li>
+<li>显存 / 内存与模型大小的关系</li>
+<li>推理速度与参数规模的关系</li>
+</ul>
+<h3>不要过度纠结</h3>
+<ul>
+<li>某个入门示例中的具体型号是否“最强”</li>
+<li>某个版本是否绝对最新</li>
+</ul>
+<h3>更重要的是</h3>
+<blockquote>
+<p>学会一套可迁移的方法，而不是死记一个模型名。</p>
+</blockquote>
+<hr>
+<h1>九、模型选型：智能体开发中的关键决策</h1>
+<h2>9.1 模型选择不是“越大越好”</h2>
+<p>模型选型是一个典型的多目标平衡问题，要在下面几个维度之间折中：</p>
+<ul>
+<li>性能</li>
+<li>成本</li>
+<li>延迟</li>
+<li>可部署性</li>
+<li>可控性</li>
+<li>隐私</li>
+<li>上下文窗口</li>
+<li>多模态能力</li>
+<li>工具调用能力</li>
+</ul>
+<hr>
+<h2>9.2 关键考量维度</h2>
+<h3>9.2.1 性能与能力</h3>
+<p>不同模型擅长方向不同：</p>
+<ul>
+<li>推理</li>
+<li>代码</li>
+<li>对话</li>
+<li>创意写作</li>
+<li>多语言</li>
+<li>长文本理解</li>
+</ul>
+<h3>9.2.2 成本</h3>
+<p>闭源模型：</p>
+<ul>
+<li>API 按 token 计费</li>
+</ul>
+<p>开源模型：</p>
+<ul>
+<li>需要本地硬件和运维成本</li>
+</ul>
+<h3>9.2.3 延迟</h3>
+<p>实时交互任务尤其关注：</p>
+<ul>
+<li>首 token 延迟</li>
+<li>总响应时间</li>
+<li>并发吞吐能力</li>
+</ul>
+<h3>9.2.4 上下文窗口</h3>
+<p>长文档分析、长对话记忆、多文件推理都依赖上下文窗口。</p>
+<h3>9.2.5 隐私与合规</h3>
+<p>企业内部数据、医疗、金融等场景通常更重视：</p>
+<ul>
+<li>数据不出域</li>
+<li>审计能力</li>
+<li>部署自主权</li>
+</ul>
+<h3>9.2.6 可控性</h3>
+<p>是否能：</p>
+<ul>
+<li>本地部署</li>
+<li>微调</li>
+<li>蒸馏</li>
+<li>加 guardrails</li>
+<li>接入私有知识库</li>
+</ul>
+<hr>
+<h2>9.3 闭源模型 vs 开源模型</h2>
+<h3>闭源模型的典型特点</h3>
+<h4>优点</h4>
+<ul>
+<li>通常性能强</li>
+<li>API 易用</li>
+<li>生态成熟</li>
+<li>多模态、工具调用、推理能力往往更完整</li>
+</ul>
+<h4>缺点</h4>
+<ul>
+<li>成本可能高</li>
+<li>自主控制弱</li>
+<li>隐私与合规受限</li>
+<li>某些场景下难以深度定制</li>
+</ul>
+<hr>
+<h3>开源模型的典型特点</h3>
+<h4>优点</h4>
+<ul>
+<li>可本地部署</li>
+<li>可微调</li>
+<li>可审查权重与行为</li>
+<li>社区生态活跃</li>
+<li>对企业私有化场景友好</li>
+</ul>
+<h4>缺点</h4>
+<ul>
+<li>部署门槛更高</li>
+<li>推理优化和工程能力要求更强</li>
+<li>在某些最前沿能力上可能仍略弱于顶级闭源模型</li>
+</ul>
+<hr>
+<h2>9.4 当前更实用的选型思路</h2>
+<h3>如果你是做学习 / 原型验证</h3>
+<p>优先：</p>
+<ul>
+<li>小中型开源模型</li>
+<li>云端 API 快速验证</li>
+<li>重点验证 Prompt、流程、工具链</li>
+</ul>
+<h3>如果你是做企业 Agent</h3>
+<p>重点看：</p>
+<ul>
+<li>成本可控</li>
+<li>工具调用能力</li>
+<li>RAG 效果</li>
+<li>幻觉率</li>
+<li>延迟</li>
+<li>合规与私有化</li>
+</ul>
+<h3>如果你是做复杂高价值任务</h3>
+<p>更看重：</p>
+<ul>
+<li>推理能力</li>
+<li>稳定性</li>
+<li>长上下文</li>
+<li>结构化输出能力</li>
+<li>外部工具协同能力</li>
+</ul>
+<hr>
+<h1>十、缩放法则（Scaling Laws）</h1>
+<h2>10.1 什么是缩放法则</h2>
+<p>缩放法则指出：</p>
+<blockquote>
+<p>模型性能与参数量、数据量、计算量之间存在可预测的幂律关系。</p>
+</blockquote>
+<p>简单说：</p>
+<ul>
+<li>模型更大</li>
+<li>数据更多</li>
+<li>训练算力更强</li>
+</ul>
+<p>通常模型性能就会更稳定地提升。</p>
+<hr>
+<h2>10.2 为什么缩放法则重要</h2>
+<p>它说明大模型的进步不是偶然的，而是具有系统性的。</p>
+<p>这解释了为什么过去几年里模型能力持续跃迁：</p>
+<ul>
+<li>参数量扩大</li>
+<li>训练数据暴涨</li>
+<li>算力持续投入</li>
+<li>工程优化不断进步</li>
+</ul>
+<hr>
+<h2>10.3 Chinchilla 视角：不是只堆参数就行</h2>
+<p>缩放法则的进一步修正告诉我们：</p>
+<blockquote>
+<p><strong>参数量与数据量之间存在更优配比。</strong></p>
+</blockquote>
+<p>也就是说：</p>
+<ul>
+<li>不是模型越大越好</li>
+<li>如果数据不足，盲目增大模型并不划算</li>
+<li>数据效率同样重要</li>
+</ul>
+<h3>启示</h3>
+<p>现代大模型训练不只是“拼参数规模”，而是：</p>
+<ul>
+<li>参数</li>
+<li>数据</li>
+<li>计算预算<br>
+三者一起优化</li>
+</ul>
+<hr>
+<h2>10.4 能力涌现（Emergence）</h2>
+<p>当模型规模足够大时，会出现小模型没有或不明显的能力，例如：</p>
+<ul>
+<li>更强的指令遵循</li>
+<li>多步推理</li>
+<li>更好的代码生成</li>
+<li>更复杂的任务迁移能力</li>
+</ul>
+<h3>我的理解</h3>
+<p>所谓“涌现”，可以理解为：</p>
+<ul>
+<li>能力不是线性增加的</li>
+<li>到达某个规模阈值后，系统会出现新的行为模式</li>
+</ul>
+<hr>
+<h1>十一、大语言模型的局限性</h1>
+<h2>11.1 幻觉（Hallucination）</h2>
+<p>这是今天做 LLM 应用最必须警惕的问题之一。</p>
+<h3>定义</h3>
+<p>模型生成了：</p>
+<ul>
+<li>与事实不符的内容</li>
+<li>与输入矛盾的内容</li>
+<li>不存在的实体、数据、事件</li>
+<li>不忠实于原文的总结 / 翻译 / 改写</li>
+</ul>
+<h3>常见类型</h3>
+<ol>
+<li>
+<p><strong>事实性幻觉</strong></p>
+<ul>
+<li>与现实世界事实不符</li>
+</ul>
+</li>
+<li>
+<p><strong>忠实性幻觉</strong></p>
+<ul>
+<li>没有忠实反映输入内容</li>
+</ul>
+</li>
+<li>
+<p><strong>内在幻觉</strong></p>
+<ul>
+<li>与给定上下文直接矛盾</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h2>11.2 幻觉为什么会发生</h2>
+<h3>原因 1：训练数据并不完美</h3>
+<p>数据可能包含：</p>
+<ul>
+<li>错误</li>
+<li>矛盾</li>
+<li>过时信息</li>
+<li>偏见</li>
+</ul>
+<h3>原因 2：生成机制决定了它本质上在“预测 token”</h3>
+<p>模型没有天然的事实核查模块。</p>
+<h3>原因 3：复杂推理链容易出错</h3>
+<p>在长链条推理中，一步出错可能步步错。</p>
+<hr>
+<h2>11.3 其他局限</h2>
+<h3>11.3.1 知识时效性</h3>
+<p>模型知识通常停留在训练数据截止时点之前。</p>
+<h3>11.3.2 偏见问题</h3>
+<p>模型可能吸收训练数据中的社会偏见与刻板印象。</p>
+<h3>11.3.3 不确定性表达不足</h3>
+<p>模型往往会“很自信地说错”。</p>
+<hr>
+<h2>11.4 缓解幻觉的方法</h2>
+<p>这是非常现代、非常实用的一节。</p>
+<h3>11.4.1 数据层面</h3>
+<ul>
+<li>数据清洗</li>
+<li>引入更高质量事实知识</li>
+<li>RLHF 等对齐方法</li>
+</ul>
+<h3>11.4.2 模型层面</h3>
+<ul>
+<li>改进架构</li>
+<li>引入不确定性表达机制</li>
+</ul>
+<h3>11.4.3 推理与生成层面（最实用）</h3>
+<h4>1）RAG（检索增强生成）</h4>
+<p>先检索外部知识，再把检索结果作为上下文喂给模型。</p>
+<p><strong>适用场景：</strong></p>
+<ul>
+<li>企业知识库问答</li>
+<li>文档助手</li>
+<li>论文阅读助手</li>
+<li>客服系统</li>
+</ul>
+<h4>2）多步推理与验证</h4>
+<p>让模型先分步分析，再检查过程或结论。</p>
+<p><strong>适用场景：</strong></p>
+<ul>
+<li>数学</li>
+<li>复杂推理</li>
+<li>多条件决策</li>
+<li>流程性任务</li>
+</ul>
+<h4>3）外部工具调用</h4>
+<p>让模型调用：</p>
+<ul>
+<li>搜索引擎</li>
+<li>计算器</li>
+<li>数据库</li>
+<li>代码执行器</li>
+<li>API</li>
+</ul>
+<p><strong>适用场景：</strong></p>
+<ul>
+<li>实时信息查询</li>
+<li>精确计算</li>
+<li>数据处理</li>
+<li>Agent 执行动作</li>
+</ul>
+<h3>关键结论</h3>
+<blockquote>
+<p>想降低幻觉，不能只“相信模型更聪明”，而要让系统具备检索、验证和工具使用能力。</p>
+</blockquote>
+<hr>
+<h1>十二、这一章最值得记住的现代结论</h1>
+<h2>12.1 架构层面</h2>
+<p>现代大语言模型的核心基础是：</p>
+<blockquote>
+<p><strong>Transformer，尤其是 Decoder-only 的自回归生成范式。</strong></p>
+</blockquote>
+<hr>
+<h2>12.2 使用层面</h2>
+<p>与模型交互时，最重要的是：</p>
+<ol>
+<li>Prompt 是否清晰</li>
+<li>采样参数是否合理</li>
+<li>Tokenizer 与上下文成本是否被正确理解</li>
+</ol>
+<hr>
+<h2>12.3 系统层面</h2>
+<p>做真正可用的智能体，不能只靠“裸模型”，而要组合：</p>
+<ul>
+<li>Prompt</li>
+<li>检索</li>
+<li>工具</li>
+<li>记忆</li>
+<li>工作流</li>
+<li>评测</li>
+</ul>
+<hr>
+<h2>12.4 工程层面</h2>
+<p>模型选型不是选“最强名词”，而是选：</p>
+<ul>
+<li>任务匹配度</li>
+<li>成本可承受</li>
+<li>延迟可接受</li>
+<li>幻觉可控制</li>
+<li>部署可实现</li>
+</ul>
+<hr>
+<h1>十三、我自己的总结</h1>
+<p>这一章最核心的价值，不是让人死记公式，而是建立一个完整认知框架：</p>
+<h2>13.1 认知框架一：语言模型的本质</h2>
+<p>大模型不是神秘黑箱，本质上是一个强大的“下一个 token 预测器”。</p>
+<h2>13.2 认知框架二：能力来自哪里</h2>
+<p>能力来自：</p>
+<ul>
+<li>大规模数据</li>
+<li>大规模参数</li>
+<li>大规模计算</li>
+<li>合适架构</li>
+<li>有效对齐与推理流程</li>
+</ul>
+<h2>13.3 认知框架三：为什么今天是 Transformer / Decoder-only</h2>
+<p>因为它更适合：</p>
+<ul>
+<li>并行训练</li>
+<li>长距离依赖建模</li>
+<li>统一生成任务</li>
+<li>大规模预训练扩展</li>
+</ul>
+<h2>13.4 认知框架四：为什么单有模型还不够</h2>
+<p>因为模型会：</p>
+<ul>
+<li>幻觉</li>
+<li>过时</li>
+<li>受上下文限制</li>
+<li>受采样策略影响</li>
+</ul>
+<p>所以现代 Agent 系统必须依赖：</p>
+<ul>
+<li>RAG</li>
+<li>工具调用</li>
+<li>结构化提示</li>
+<li>验证与反馈机制</li>
+</ul>
+<hr>
+<h1>十四、复习时建议重点背的内容</h1>
+<h2>必背 1：语言模型本质</h2>
+<ul>
+<li>序列概率建模</li>
+<li>下一个 token 预测</li>
+</ul>
+<h2>必背 2：模型演进链条</h2>
+<ul>
+<li>N-gram</li>
+<li>神经网络语言模型</li>
+<li>RNN/LSTM</li>
+<li>Transformer</li>
+<li>Decoder-only</li>
+</ul>
+<h2>必背 3：Transformer 三件套</h2>
+<ul>
+<li>自注意力</li>
+<li>多头注意力</li>
+<li>位置编码</li>
+</ul>
+<h2>必背 4：为什么主流是 Decoder-only</h2>
+<ul>
+<li>自回归生成统一</li>
+<li>训练范式简单</li>
+<li>通用生成能力强</li>
+</ul>
+<h2>必背 5：与模型交互的三个现实问题</h2>
+<ul>
+<li>Prompt</li>
+<li>采样参数</li>
+<li>Tokenizer / token 成本</li>
+</ul>
+<h2>必背 6：大模型局限</h2>
+<ul>
+<li>幻觉</li>
+<li>知识过时</li>
+<li>偏见</li>
+<li>不确定性不足</li>
+</ul>
+<h2>必背 7：缓解幻觉的现代方案</h2>
+<ul>
+<li>RAG</li>
+<li>多步推理</li>
+<li>外部工具调用</li>
+</ul>
+<hr>
+<h1>十五、一句话总结全章</h1>
+<blockquote>
+<p>大语言模型的发展，是语言建模从“统计计数”走向“向量表示”，再走向“注意力驱动的大规模自回归生成”的过程；而在今天真正可用的智能体系统里，最重要的已经不只是模型本身，而是模型与 Prompt、Tokenizer、检索、工具和工作流的协同。</p>
+</blockquote></div>
+<div style="font-size:small;margin-top:8px;float:right;">感谢你的访问，欢迎交流。</div>
+
+<button class="btn btn-block" type="button" onclick="openComments()" id="cmButton">评论</button>
+<div class="comments" id="comments"></div>
+
+</div>
+    <div id="footer"><div id="footer1">Copyright © <span id="copyrightYear"></span> <a href="https://JustHeart31.github.io">JH Blog</a></div>
+<div id="footer2">
+    <span id="runday"></span><span>Powered by <a href="https://meekdai.com/Gmeek.html" target="_blank">Gmeek</a></span>
+</div>
+
+<script>
+var now=new Date();
+document.getElementById("copyrightYear").innerHTML=now.getFullYear();
+
+if(""!=""){
+    var startSite=new Date("");
+    var diff=now.getTime()-startSite.getTime();
+    var diffDay=Math.floor(diff/(1000*60*60*24));
+    document.getElementById("runday").innerHTML="网站运行 "+diffDay+" 天"+" • ";
+}
+</script></div>
+</body>
+<script>
+var IconList={'sun': 'M8 10.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM8 12a4 4 0 100-8 4 4 0 000 8zM8 0a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0V.75A.75.75 0 018 0zm0 13a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 018 13zM2.343 2.343a.75.75 0 011.061 0l1.06 1.061a.75.75 0 01-1.06 1.06l-1.06-1.06a.75.75 0 010-1.06zm9.193 9.193a.75.75 0 011.06 0l1.061 1.06a.75.75 0 01-1.06 1.061l-1.061-1.06a.75.75 0 010-1.061zM16 8a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0116 8zM3 8a.75.75 0 01-.75.75H.75a.75.75 0 010-1.5h1.5A.75.75 0 013 8zm10.657-5.657a.75.75 0 010 1.061l-1.061 1.06a.75.75 0 11-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zm-9.193 9.193a.75.75 0 010 1.06l-1.06 1.061a.75.75 0 11-1.061-1.06l1.06-1.061a.75.75 0 011.061 0z', 'moon': 'M9.598 1.591a.75.75 0 01.785-.175 7 7 0 11-8.967 8.967.75.75 0 01.961-.96 5.5 5.5 0 007.046-7.046.75.75 0 01.175-.786zm1.616 1.945a7 7 0 01-7.678 7.678 5.5 5.5 0 107.678-7.678z', 'sync': 'M1.705 8.005a.75.75 0 0 1 .834.656 5.5 5.5 0 0 0 9.592 2.97l-1.204-1.204a.25.25 0 0 1 .177-.427h3.646a.25.25 0 0 1 .25.25v3.646a.25.25 0 0 1-.427.177l-1.38-1.38A7.002 7.002 0 0 1 1.05 8.84a.75.75 0 0 1 .656-.834ZM8 2.5a5.487 5.487 0 0 0-4.131 1.869l1.204 1.204A.25.25 0 0 1 4.896 6H1.25A.25.25 0 0 1 1 5.75V2.104a.25.25 0 0 1 .427-.177l1.38 1.38A7.002 7.002 0 0 1 14.95 7.16a.75.75 0 0 1-1.49.178A5.5 5.5 0 0 0 8 2.5Z', 'home': 'M6.906.664a1.749 1.749 0 0 1 2.187 0l5.25 4.2c.415.332.657.835.657 1.367v7.019A1.75 1.75 0 0 1 13.25 15h-3.5a.75.75 0 0 1-.75-.75V9H7v5.25a.75.75 0 0 1-.75.75h-3.5A1.75 1.75 0 0 1 1 13.25V6.23c0-.531.242-1.034.657-1.366l5.25-4.2Zm1.25 1.171a.25.25 0 0 0-.312 0l-5.25 4.2a.25.25 0 0 0-.094.196v7.019c0 .138.112.25.25.25H5.5V8.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 .75.75v5.25h2.75a.25.25 0 0 0 .25-.25V6.23a.25.25 0 0 0-.094-.195Z', 'github': 'M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z', 'copy': 'M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z', 'check': 'M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z'};
+var utterancesLoad=0;
+
+let themeSettings={
+    "dark": ["dark","moon","#00f0ff","dark-blue"],
+    "light": ["light","sun","#ff5000","github-light"],
+    "auto": ["auto","sync","","preferred-color-scheme"]
+};
+function changeTheme(mode, icon, color, utheme){
+    document.documentElement.setAttribute("data-color-mode",mode);
+    document.getElementById("themeSwitch").setAttribute("d",value=IconList[icon]);
+    document.getElementById("themeSwitch").parentNode.style.color=color;
+    if(utterancesLoad==1){utterancesTheme(utheme);}
+}
+function modeSwitch(){
+    let currentMode=document.documentElement.getAttribute('data-color-mode');
+    let newMode = currentMode === "light" ? "dark" : currentMode === "dark" ? "auto" : "light";
+    localStorage.setItem("meek_theme", newMode);
+    if(themeSettings[newMode]){
+        changeTheme(...themeSettings[newMode]);
+    }
+}
+function utterancesTheme(theme){
+    const message={type:'set-theme',theme: theme};
+    const iframe=document.getElementsByClassName('utterances-frame')[0];
+    iframe.contentWindow.postMessage(message,'https://utteranc.es');
+}
+if(themeSettings[theme]){changeTheme(...themeSettings[theme]);}
+console.log("\n %c Gmeek last https://github.com/Meekdai/Gmeek \n","padding:5px 0;background:#02d81d;color:#fff");
+</script>
+
+<script>
+document.getElementById("pathHome").setAttribute("d",IconList["home"]);
+
+
+
+
+function openComments(){
+    cm=document.getElementById("comments");
+    cmButton=document.getElementById("cmButton");
+    cmButton.disabled=true;
+    cmButton.innerHTML="loading";
+    span=document.createElement("span");
+    span.setAttribute("class","AnimatedEllipsis");
+    cmButton.appendChild(span);
+
+    script=document.createElement("script");
+    script.setAttribute("src","https://utteranc.es/client.js");
+    script.setAttribute("repo","JustHeart31/JustHeart31.github.io");
+    script.setAttribute("issue-term","title");
+    
+    if(localStorage.getItem("meek_theme")=="dark"){script.setAttribute("theme","dark-blue");}
+    else if(localStorage.getItem("meek_theme")=="light") {script.setAttribute("theme","github-light");}
+    else{script.setAttribute("theme","preferred-color-scheme");}
+    
+    script.setAttribute("crossorigin","anonymous");
+    script.setAttribute("async","");
+    cm.appendChild(script);
+
+    int=self.setInterval("iFrameLoading()",200);
+}
+
+function iFrameLoading(){
+    var utterances=document.getElementsByClassName('utterances');
+    if(utterances.length==1){
+        if(utterances[0].style.height!=""){
+            utterancesLoad=1;
+            int=window.clearInterval(int);
+            document.getElementById("cmButton").style.display="none";
+            console.log("utterances Load OK");
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const createClipboardHTML = (codeContent, additionalClasses = '') => `
+        <pre class="notranslate"><code class="notranslate">${codeContent}</code></pre>
+        <div class="clipboard-container position-absolute right-0 top-0 ${additionalClasses}">
+            <clipboard-copy class="ClipboardButton btn m-2 p-0" role="button" style="display: inherit;">
+                <svg height="16" width="16" class="octicon octicon-copy m-2"><path d="${IconList["copy"]}"></path></svg>
+                <svg height="16" width="16" class="octicon octicon-check color-fg-success m-2 d-none"><path d="${IconList["check"]}"></path></svg>
+            </clipboard-copy>
+            <div class="copy-feedback">Copied!</div>
+        </div>
+    `;
+
+    const handleCodeElements = (selector = '') => {
+        document.querySelectorAll(selector).forEach(codeElement => {
+            const codeContent = codeElement.innerHTML;
+            const newStructure = document.createElement('div');
+            newStructure.className = 'snippet-clipboard-content position-relative overflow-auto';
+            newStructure.innerHTML = createClipboardHTML(codeContent);
+
+            const parentElement = codeElement.parentElement;
+            if (selector.includes('highlight')) {
+                parentElement.insertBefore(newStructure, codeElement.nextSibling);
+                parentElement.removeChild(codeElement);
+            } else {
+                parentElement.parentElement.replaceChild(newStructure, parentElement);
+            }
+        });
+    };
+
+    handleCodeElements('pre.notranslate > code.notranslate');
+    handleCodeElements('div.highlight > pre.notranslate');
+
+    let currentFeedback = null;
+    document.querySelectorAll('clipboard-copy').forEach(copyButton => {
+        copyButton.addEventListener('click', () => {
+            const codeContent = copyButton.closest('.snippet-clipboard-content').innerText;
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = codeContent;
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempTextArea);
+
+            const copyIcon = copyButton.querySelector('.octicon-copy');
+            const checkIcon = copyButton.querySelector('.octicon-check');
+            const copyFeedback = copyButton.nextElementSibling;
+
+            if (currentFeedback && currentFeedback !== copyFeedback) {currentFeedback.style.display = 'none';}
+            currentFeedback = copyFeedback;
+
+            copyIcon.classList.add('d-none');
+            checkIcon.classList.remove('d-none');
+            copyFeedback.style.display = 'block';
+            copyButton.style.borderColor = 'var(--color-success-fg)';
+
+            setTimeout(() => {
+                copyIcon.classList.remove('d-none');
+                checkIcon.classList.add('d-none');
+                copyFeedback.style.display = 'none';
+                copyButton.style.borderColor = '';
+            }, 2000);
+        });
+    });
+});
+
+</script>
+<script>MathJax = {tex: {inlineMath: [["$", "$"]]}};</script><script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+</html>

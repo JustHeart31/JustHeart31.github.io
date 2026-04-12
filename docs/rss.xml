@@ -1,5 +1,29 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>JH Blog</title><link>https://JustHeart31.github.io</link><description>记录编程、学习与生活思考</description><copyright>JH Blog</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://avatars.githubusercontent.com/u/171469879?v=4&amp;size=200</url><title>avatar</title><link>https://JustHeart31.github.io</link></image><lastBuildDate>Sat, 11 Apr 2026 04:44:30 +0000</lastBuildDate><managingEditor>JH Blog</managingEditor><ttl>60</ttl><webMaster>JH Blog</webMaster><item><title>Agent_学习阶段02_知识&amp;习题</title><link>https://JustHeart31.github.io/post/Agent_-xue-xi-jie-duan-02_-zhi-shi-%26-xi-ti.html</link><description># 📚 第二章：智能体发展史核心笔记
+<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>JH Blog</title><link>https://JustHeart31.github.io</link><description>记录编程、学习与生活思考</description><copyright>JH Blog</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://avatars.githubusercontent.com/u/171469879?v=4&amp;size=200</url><title>avatar</title><link>https://JustHeart31.github.io</link></image><lastBuildDate>Sun, 12 Apr 2026 06:05:51 +0000</lastBuildDate><managingEditor>JH Blog</managingEditor><ttl>60</ttl><webMaster>JH Blog</webMaster><item><title>Agent学习阶段03_知识</title><link>https://JustHeart31.github.io/post/Agent-xue-xi-jie-duan-03_-zhi-shi.html</link><description># 第三章《大语言模型基础》笔记
+
+## 一、章节总览
+
+本章核心问题是：**现代智能体为什么能工作，大语言模型为什么会表现出强大的理解、生成与一定程度的推理能力？**
+
+全章主线可以概括为：
+
+1. 语言模型的基本任务是什么
+2. 语言模型如何从统计方法演进到神经网络，再到 Transformer
+3. 为什么今天的大模型大多采用 **Decoder-only** 架构
+4. 我们如何通过 **Prompt、采样参数、Tokenizer** 与模型有效交互
+5. 如何调用和部署开源模型
+6. 如何做模型选型
+7. 大模型为什么会越来越强（缩放法则），又为什么仍然会出错（幻觉等局限）
+
+---
+
+# 二、语言模型基础：从“统计计数”到“深度建模”
+
+## 2.1 语言模型的本质
+
+语言模型（Language Model, LM）的核心任务是：
+
+&gt; **为一个词序列出现的概率建模，或者等价地，预测下一个最可能出现的词。</description><guid isPermaLink="true">https://JustHeart31.github.io/post/Agent-xue-xi-jie-duan-03_-zhi-shi.html</guid><pubDate>Sun, 12 Apr 2026 06:05:23 +0000</pubDate></item><item><title>Agent_学习阶段02_知识&amp;习题</title><link>https://JustHeart31.github.io/post/Agent_-xue-xi-jie-duan-02_-zhi-shi-%26-xi-ti.html</link><description># 📚 第二章：智能体发展史核心笔记
 
 本章回顾了智能体技术从“手工编码规则”到“通用自主学习”的范式转移。</description><guid isPermaLink="true">https://JustHeart31.github.io/post/Agent_-xue-xi-jie-duan-02_-zhi-shi-%26-xi-ti.html</guid><pubDate>Sat, 11 Apr 2026 04:44:04 +0000</pubDate></item><item><title>Agent学习阶段01_习题（第4题代码未实现）</title><link>https://JustHeart31.github.io/post/Agent-xue-xi-jie-duan-01_-xi-ti-%EF%BC%88-di-4-ti-dai-ma-wei-shi-xian-%EF%BC%89.html</link><description># 习题
 
