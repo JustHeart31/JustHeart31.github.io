@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html data-color-mode="light" data-dark-theme="dark_dimmed" data-light-theme="light" lang="zh-CN">
+<head>
+    <meta content="text/html; charset=utf-8" http-equiv="content-type" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link href='https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/Primer/21.0.7/primer.css' rel='stylesheet' />
+    
+    <link rel="icon" href="https://avatars.githubusercontent.com/u/171469879?v=4&size=200"><script>
+        let theme = localStorage.getItem("meek_theme") || "light";
+        document.documentElement.setAttribute("data-color-mode", theme);
+    </script>
+<meta name="description" content="# 第四章 智能体经典范式构建
+
+
+一个现代的智能体，其核心能力在于能将大语言模型的推理能力与外部世界联通。">
+<meta property="og:title" content="Agent学习阶段04_经典范式ReAct">
+<meta property="og:description" content="# 第四章 智能体经典范式构建
+
+
+一个现代的智能体，其核心能力在于能将大语言模型的推理能力与外部世界联通。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://JustHeart31.github.io/post/Agent-xue-xi-jie-duan-04_-jing-dian-fan-shi-ReAct.html">
+<meta property="og:image" content="https://avatars.githubusercontent.com/u/171469879?v=4&size=200">
+<title>Agent学习阶段04_经典范式ReAct</title>
+<link href="//unpkg.com/@wooorm/starry-night@2.1.1/style/both.css" rel="stylesheet" />
+
+
+</head>
+<style>
+body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;padding: 45px;font-size: 16px;font-family: sans-serif;line-height: 1.25;}
+#header{display:flex;padding-bottom:8px;border-bottom: 1px solid var(--borderColor-muted, var(--color-border-muted));margin-bottom: 16px;}
+#footer {margin-top:64px; text-align: center;font-size: small;}
+
+</style>
+
+<style>
+.postTitle{margin: auto 0;font-size:40px;font-weight:bold;}
+.title-right{display:flex;margin:auto 0 0 auto;}
+.title-right .circle{padding: 14px 16px;margin-right:8px;}
+#postBody{border-bottom: 1px solid var(--color-border-default);padding-bottom:36px;}
+#postBody hr{height:2px;}
+#cmButton{height:48px;margin-top:48px;}
+#comments{margin-top:64px;}
+.g-emoji{font-size:24px;}
+@media (max-width: 600px) {
+    body {padding: 8px;}
+    .postTitle{font-size:24px;}
+}
+.copy-feedback {
+    display: none;
+    position: absolute;
+    top: 10px;
+    right: 50px;
+    color: var(--color-fg-on-emphasis);
+    background-color: var(--color-fg-muted);
+    border-radius: 3px;
+    padding: 5px 8px;
+    font-size: 12px;
+}
+</style>
+<style>body{letter-spacing:.2px;} img.avatar{border-radius:50%!important;box-shadow:0 8px 24px rgba(0,0,0,.14);} .post-list-item{border-radius:18px;padding:18px 20px;border:1px solid rgba(128,128,128,.16);box-shadow:0 6px 20px rgba(0,0,0,.04);transition:transform .2s ease, box-shadow .2s ease;} .post-list-item:hover{transform:translateY(-3px);box-shadow:0 12px 30px rgba(0,0,0,.08);} .post-meta{opacity:.72;font-size:.92rem;}</style>
+
+
+
+<body>
+    <div id="header">
+<h1 class="postTitle">Agent学习阶段04_经典范式ReAct</h1>
+<div class="title-right">
+    <a href="https://JustHeart31.github.io" id="buttonHome" class="btn btn-invisible circle" title="首页">
+        <svg class="octicon" width="16" height="16">
+            <path id="pathHome" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+    
+
+    <a class="btn btn-invisible circle" onclick="modeSwitch();" title="切换主题">
+        <svg class="octicon" width="16" height="16" >
+            <path id="themeSwitch" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+
+</div>
+</div>
+    <div id="content">
+<div class="markdown-body" id="postBody"><h1>第四章 智能体经典范式构建</h1>
+<p>一个现代的智能体，其核心能力在于能将大语言模型的推理能力与外部世界联通。它能够自主地理解用户意图、拆解复杂任务，并通过调用代码解释器、搜索引擎、API等一系列“工具”，来获取信息、执行操作，最终达成目标。 然而，智能体并非万能，它同样面临着来自大模型本身的“幻觉”问题、在复杂任务中可能陷入推理循环、以及对工具的错误使用等挑战，这些也构成了智能体的能力边界。</p>
+<p>为了更好地组织智能体的“思考”与“行动”过程，业界涌现出了多种经典的架构范式。在本章中，我们将聚焦于其中最具代表性的三种，并一步步从零实现它们：</p>
+<ul>
+<li><strong>ReAct (Reasoning and Acting)：</strong> 一种将“思考”和“行动”紧密结合的范式，让智能体边想边做，动态调整。</li>
+<li><strong>Plan-and-Solve：</strong> 一种“三思而后行”的范式，智能体首先生成一个完整的行动计划，然后严格执行。</li>
+<li><strong>Reflection：</strong> 一种赋予智能体“反思”能力的范式，通过自我批判和修正来优化结果。</li>
+</ul>
+<h2>4.1 环境准备与基础工具定义</h2>
+<p>在开始构建之前，需要先搭建好开发环境并定义一些基础组件。这能帮助我们在后续实现不同范式时，避免重复劳动，更专注于核心逻辑。</p>
+<h3>4.1.1 安装依赖库</h3>
+<p>首先，请确保你已经安装了 <code class="notranslate">openai</code> 库用于与大语言模型交互，以及 <code class="notranslate">python-dotenv</code> 库用于安全地管理我们的 API 密钥。</p>
+<p>在终端中运行以下命令：</p>
+<div class="highlight highlight-source-shell"><pre class="notranslate">pip install openai python-dotenv</pre></div>
+<h3>4.1.2 配置 API 密钥</h3>
+<p>为了让代码更通用，我们将模型服务的相关信息（模型ID、API密钥、服务地址）统一配置在环境变量中。</p>
+<ol>
+<li>在你的项目根目录下，创建一个名为 <code class="notranslate">.env</code> 的文件。</li>
+<li>在该文件中，添加以下内容。可以根据自己的需要，将其指向 OpenAI 官方服务，或任何兼容 OpenAI 接口的本地/第三方服务。</li>
+</ol>
+<div class="highlight highlight-source-shell"><pre class="notranslate"><span class="pl-c"><span class="pl-c">#</span> .env file</span>
+LLM_API_KEY=<span class="pl-s"><span class="pl-pds">"</span>YOUR-API-KEY<span class="pl-pds">"</span></span>
+LLM_MODEL_ID=<span class="pl-s"><span class="pl-pds">"</span>YOUR-MODEL<span class="pl-pds">"</span></span>
+LLM_BASE_URL=<span class="pl-s"><span class="pl-pds">"</span>YOUR-URL<span class="pl-pds">"</span></span></pre></div>
+<p>代码将从此文件自动加载这些配置。</p>
+<h3>4.1.3 封装基础 LLM 调用函数</h3>
+<p>为了让代码结构更清晰、更易于复用，定义一个专属的LLM客户端类。这个类将封装所有与模型服务交互的细节，让主逻辑可以更专注于智能体的构建。</p>
+<div class="highlight highlight-source-python"><pre class="notranslate"><span class="pl-k">import</span> <span class="pl-s1">os</span>
+<span class="pl-k">from</span> <span class="pl-s1">openai</span> <span class="pl-k">import</span> <span class="pl-v">OpenAI</span>
+<span class="pl-k">from</span> <span class="pl-s1">dotenv</span> <span class="pl-k">import</span> <span class="pl-s1">load_dotenv</span>
+<span class="pl-k">from</span> <span class="pl-s1">typing</span> <span class="pl-k">import</span> <span class="pl-v">List</span>, <span class="pl-v">Dict</span>
+
+<span class="pl-c"># 加载 .env 文件中的环境变量</span>
+<span class="pl-en">load_dotenv</span>()
+
+<span class="pl-k">class</span> <span class="pl-v">HelloAgentsLLM</span>:
+    <span class="pl-s">"""</span>
+<span class="pl-s">    定制的LLM客户端。</span>
+<span class="pl-s">    它用于调用任何兼容OpenAI接口的服务，并默认使用流式响应。</span>
+<span class="pl-s">    """</span>
+    <span class="pl-k">def</span> <span class="pl-en">__init__</span>(<span class="pl-s1">self</span>, <span class="pl-s1">model</span>: <span class="pl-smi">str</span> <span class="pl-c1">=</span> <span class="pl-c1">None</span>, <span class="pl-s1">apiKey</span>: <span class="pl-smi">str</span> <span class="pl-c1">=</span> <span class="pl-c1">None</span>, <span class="pl-s1">baseUrl</span>: <span class="pl-smi">str</span> <span class="pl-c1">=</span> <span class="pl-c1">None</span>, <span class="pl-s1">timeout</span>: <span class="pl-smi">int</span> <span class="pl-c1">=</span> <span class="pl-c1">None</span>):
+        <span class="pl-s">"""</span>
+<span class="pl-s">        初始化客户端。优先使用传入参数，如果未提供，则从环境变量加载。</span>
+<span class="pl-s">        """</span>
+        <span class="pl-s1">self</span>.<span class="pl-c1">model</span> <span class="pl-c1">=</span> <span class="pl-s1">model</span> <span class="pl-c1">or</span> <span class="pl-s1">os</span>.<span class="pl-c1">getenv</span>(<span class="pl-s">"LLM_MODEL_ID"</span>)
+        <span class="pl-s1">apiKey</span> <span class="pl-c1">=</span> <span class="pl-s1">apiKey</span> <span class="pl-c1">or</span> <span class="pl-s1">os</span>.<span class="pl-c1">getenv</span>(<span class="pl-s">"LLM_API_KEY"</span>)
+        <span class="pl-s1">baseUrl</span> <span class="pl-c1">=</span> <span class="pl-s1">baseUrl</span> <span class="pl-c1">or</span> <span class="pl-s1">os</span>.<span class="pl-c1">getenv</span>(<span class="pl-s">"LLM_BASE_URL"</span>)
+        <span class="pl-s1">timeout</span> <span class="pl-c1">=</span> <span class="pl-s1">timeout</span> <span class="pl-c1">or</span> <span class="pl-en">int</span>(<span class="pl-s1">os</span>.<span class="pl-c1">getenv</span>(<span class="pl-s">"LLM_TIMEOUT"</span>, <span class="pl-c1">60</span>))
+        
+        <span class="pl-k">if</span> <span class="pl-c1">not</span> <span class="pl-en">all</span>([<span class="pl-s1">self</span>.<span class="pl-c1">model</span>, <span class="pl-s1">apiKey</span>, <span class="pl-s1">baseUrl</span>]):
+            <span class="pl-k">raise</span> <span class="pl-en">ValueError</span>(<span class="pl-s">"模型ID、API密钥和服务地址必须被提供或在.env文件中定义。"</span>)
+
+        <span class="pl-s1">self</span>.<span class="pl-c1">client</span> <span class="pl-c1">=</span> <span class="pl-en">OpenAI</span>(<span class="pl-s1">api_key</span><span class="pl-c1">=</span><span class="pl-s1">apiKey</span>, <span class="pl-s1">base_url</span><span class="pl-c1">=</span><span class="pl-s1">baseUrl</span>, <span class="pl-s1">timeout</span><span class="pl-c1">=</span><span class="pl-s1">timeout</span>)
+
+    <span class="pl-k">def</span> <span class="pl-en">think</span>(<span class="pl-s1">self</span>, <span class="pl-s1">messages</span>: <span class="pl-v">List</span>[<span class="pl-v">Dict</span>[<span class="pl-smi">str</span>, <span class="pl-smi">str</span>]], <span class="pl-s1">temperature</span>: <span class="pl-smi">float</span> <span class="pl-c1">=</span> <span class="pl-c1">0</span>) <span class="pl-c1">-&gt;</span> <span class="pl-smi">str</span>:
+        <span class="pl-s">"""</span>
+<span class="pl-s">        调用大语言模型进行思考，并返回其响应。</span>
+<span class="pl-s">        """</span>
+        <span class="pl-en">print</span>(<span class="pl-s">f"🧠 正在调用 <span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">self</span>.<span class="pl-c1">model</span><span class="pl-kos">}</span></span> 模型..."</span>)
+        <span class="pl-k">try</span>:
+            <span class="pl-s1">response</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">client</span>.<span class="pl-c1">chat</span>.<span class="pl-c1">completions</span>.<span class="pl-c1">create</span>(
+                <span class="pl-s1">model</span><span class="pl-c1">=</span><span class="pl-s1">self</span>.<span class="pl-c1">model</span>,
+                <span class="pl-s1">messages</span><span class="pl-c1">=</span><span class="pl-s1">messages</span>,
+                <span class="pl-s1">temperature</span><span class="pl-c1">=</span><span class="pl-s1">temperature</span>,
+                <span class="pl-s1">stream</span><span class="pl-c1">=</span><span class="pl-c1">True</span>,
+            )
+            
+            <span class="pl-c"># 处理流式响应</span>
+            <span class="pl-en">print</span>(<span class="pl-s">"✅ 大语言模型响应成功:"</span>)
+            <span class="pl-s1">collected_content</span> <span class="pl-c1">=</span> []
+            <span class="pl-k">for</span> <span class="pl-s1">chunk</span> <span class="pl-c1">in</span> <span class="pl-s1">response</span>:
+                <span class="pl-s1">content</span> <span class="pl-c1">=</span> <span class="pl-s1">chunk</span>.<span class="pl-c1">choices</span>[<span class="pl-c1">0</span>].<span class="pl-c1">delta</span>.<span class="pl-c1">content</span> <span class="pl-c1">or</span> <span class="pl-s">""</span>
+                <span class="pl-en">print</span>(<span class="pl-s1">content</span>, <span class="pl-s1">end</span><span class="pl-c1">=</span><span class="pl-s">""</span>, <span class="pl-s1">flush</span><span class="pl-c1">=</span><span class="pl-c1">True</span>)
+                <span class="pl-s1">collected_content</span>.<span class="pl-c1">append</span>(<span class="pl-s1">content</span>)
+            <span class="pl-en">print</span>()  <span class="pl-c"># 在流式输出结束后换行</span>
+            <span class="pl-k">return</span> <span class="pl-s">""</span>.<span class="pl-c1">join</span>(<span class="pl-s1">collected_content</span>)
+
+        <span class="pl-k">except</span> <span class="pl-v">Exception</span> <span class="pl-k">as</span> <span class="pl-s1">e</span>:
+            <span class="pl-en">print</span>(<span class="pl-s">f"❌ 调用LLM API时发生错误: <span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">e</span><span class="pl-kos">}</span></span>"</span>)
+            <span class="pl-k">return</span> <span class="pl-c1">None</span>
+
+<span class="pl-c"># --- 客户端使用示例 ---</span>
+<span class="pl-k">if</span> <span class="pl-s1">__name__</span> <span class="pl-c1">==</span> <span class="pl-s">'__main__'</span>:
+    <span class="pl-k">try</span>:
+        <span class="pl-s1">llmClient</span> <span class="pl-c1">=</span> <span class="pl-en">HelloAgentsLLM</span>()
+        
+        <span class="pl-s1">exampleMessages</span> <span class="pl-c1">=</span> [
+            {<span class="pl-s">"role"</span>: <span class="pl-s">"system"</span>, <span class="pl-s">"content"</span>: <span class="pl-s">"You are a helpful assistant that writes Python code."</span>},
+            {<span class="pl-s">"role"</span>: <span class="pl-s">"user"</span>, <span class="pl-s">"content"</span>: <span class="pl-s">"写一个快速排序算法"</span>}
+        ]
+        
+        <span class="pl-en">print</span>(<span class="pl-s">"--- 调用LLM ---"</span>)
+        <span class="pl-s1">responseText</span> <span class="pl-c1">=</span> <span class="pl-s1">llmClient</span>.<span class="pl-c1">think</span>(<span class="pl-s1">exampleMessages</span>)
+        <span class="pl-k">if</span> <span class="pl-s1">responseText</span>:
+            <span class="pl-en">print</span>(<span class="pl-s">"<span class="pl-cce">\n</span><span class="pl-cce">\n</span>--- 完整模型响应 ---"</span>)
+            <span class="pl-en">print</span>(<span class="pl-s1">responseText</span>)
+
+    <span class="pl-k">except</span> <span class="pl-v">ValueError</span> <span class="pl-k">as</span> <span class="pl-s1">e</span>:
+        <span class="pl-en">print</span>(<span class="pl-s1">e</span>)
+
+
+<span class="pl-c1">&gt;</span><span class="pl-c1">&gt;&gt;</span>
+<span class="pl-c1">-</span><span class="pl-c1">-</span><span class="pl-c1">-</span> <span class="pl-s1">调用LLM</span> <span class="pl-c1">-</span><span class="pl-c1">-</span><span class="pl-c1">-</span>
+🧠 <span class="pl-s1">正在调用</span> <span class="pl-s1">xxxxxx</span> <span class="pl-s1">模型</span>...
+✅ <span class="pl-c1">大语言模型响应成功</span>:
+<span class="pl-s1">快速排序是一种非常高效的排序算法</span>...</pre></div>
+<h2>4.2 ReAct</h2>
+<p>在准备好LLM客户端后，我们将构建第一个，也是最经典的一个智能体范式<strong>ReAct (Reason + Act)</strong>。ReAct由Shunyu Yao于2022年提出<sup>[1]</sup>，其核心思想是模仿人类解决问题的方式，将<strong>推理 (Reasoning)</strong> 与<strong>行动 (Acting)</strong> 显式地结合起来，形成一个“思考-行动-观察”的循环。</p>
+<h3>4.2.1 ReAct 的工作流程</h3>
+<p>在ReAct诞生之前，主流的方法可以分为两类：一类是“纯思考”型，如<strong>思维链 (Chain-of-Thought)</strong>，它能引导模型进行复杂的逻辑推理，但无法与外部世界交互，容易产生事实幻觉；另一类是“纯行动”型，模型直接输出要执行的动作，但缺乏规划和纠错能力。</p>
+<p>ReAct的巧妙之处在于，它认识到<strong>思考与行动是相辅相成的</strong>。思考指导行动，而行动的结果又反过来修正思考。为此，ReAct范式通过一种特殊的提示工程来引导模型，使其每一步的输出都遵循一个固定的轨迹：</p>
+<ul>
+<li><strong>Thought (思考)：</strong> 这是智能体的“内心独白”。它会分析当前情况、分解任务、制定下一步计划，或者反思上一步的结果。</li>
+<li><strong>Action (行动)：</strong> 这是智能体决定采取的具体动作，通常是调用一个外部工具，例如 <code class="notranslate">Search['华为最新款手机']</code>。</li>
+<li><strong>Observation (观察)：</strong> 这是执行<code class="notranslate">Action</code>后从外部工具返回的结果，例如搜索结果的摘要或API的返回值。</li>
+</ul>
+<p>智能体将不断重复这个 <strong>Thought -&gt; Action -&gt; Observation</strong> 的循环，将新的观察结果追加到历史记录中，形成一个不断增长的上下文，直到它在<code class="notranslate">Thought</code>中认为已经找到了最终答案，然后输出结果。这个过程形成了一个强大的协同效应：<strong>推理使得行动更具目的性，而行动则为推理提供了事实依据。</strong></p>
+<p>我们可以将这个过程形式化地表达出来，具体来说，在每个时间步 $t$，智能体的策略（即大语言模型 $\pi$）会根据初始问题 $q$ 和之前所有步骤的“行动-观察”历史轨迹 $((a_1,o_1),\dots,(a_{t-1},o_{t-1}))$，来生成当前的思考 $th_t$ 和行动 $a_t$：</p>
+<p>$$\left(th_t,a_t\right)=\pi\left(q,(a_1,o_1),\ldots,(a_{t-1},o_{t-1})\right)$$</p>
+<p>随后，环境中的工具 $T$ 会执行行动 $a_t$，并返回一个新的观察结果 $o_t$：</p>
+<p>$$o_t = T(a_t)$$</p>
+<p>这个循环不断进行，将新的 $(a_t,o_t)$ 对追加到历史中，直到模型在思考 $th_t$ 中判断任务已完成。</p>
+<p>这种机制特别适用于以下场景：</p>
+<ul>
+<li><strong>需要外部知识的任务</strong>：如查询实时信息（天气、新闻、股价）、搜索专业领域的知识等。</li>
+<li><strong>需要精确计算的任务</strong>：将数学问题交给计算器工具，避免LLM的计算错误。</li>
+<li><strong>需要与API交互的任务</strong>：如操作数据库、调用某个服务的API来完成特定功能。</li>
+</ul>
+<p>因此我们将构建一个具备<strong>使用外部工具</strong>能力的ReAct智能体，来回答一个大语言模型仅凭自身知识库无法直接回答的问题。例如：“华为最新的手机是哪一款？它的主要卖点是什么？” 这个问题需要智能体理解自己需要上网搜索，调用工具搜索结果并总结答案。</p>
+<h3>4.2.2 工具的定义与实现</h3>
+<p>如果说大语言模型是智能体的大脑，那么<strong>工具 (Tools)</strong> 就是其与外部世界交互的“手和脚”。为了让ReAct范式能够真正解决我们设定的问题，智能体需要具备调用外部工具的能力。</p>
+<p>需要前往 <a href="https://serpapi.com/" rel="nofollow">SerpApi官网</a> 注册一个免费账户，获取你的API密钥，并将其添加到我们项目根目录下的 <code class="notranslate">.env</code> 文件中：</p>
+<div class="highlight highlight-source-shell"><pre class="notranslate"><span class="pl-c"><span class="pl-c">#</span> .env file</span>
+<span class="pl-c"><span class="pl-c">#</span> ... (保留之前的LLM配置)</span>
+SERPAPI_API_KEY=<span class="pl-s"><span class="pl-pds">"</span>YOUR_SERPAPI_API_KEY<span class="pl-pds">"</span></span></pre></div>
+<p>我们将分步进行：首先实现工具的核心功能，然后构建一个通用的工具管理器。</p>
+<p>（1）实现搜索工具的核心逻辑</p>
+<p>一个良好定义的工具应包含以下三个核心要素：</p>
+<ol>
+<li><strong>名称 (Name)</strong>： 一个简洁、唯一的标识符，供智能体在 <code class="notranslate">Action</code> 中调用，例如 <code class="notranslate">Search</code>。</li>
+<li><strong>描述 (Description)</strong>： 一段清晰的自然语言描述，说明这个工具的用途。<strong>这是整个机制中最关键的部分</strong>，因为大语言模型会依赖这段描述来判断何时使用哪个工具。</li>
+<li><strong>执行逻辑 (Execution Logic)</strong>： 真正执行任务的函数或方法。</li>
+</ol>
+<div class="highlight highlight-source-python"><pre class="notranslate"><span class="pl-k">from</span> <span class="pl-s1">serpapi</span> <span class="pl-k">import</span> <span class="pl-v">SerpApiClient</span>
+
+<span class="pl-c"># 我们的第一个工具是 `search` 函数，它的作用是接收一个查询字符串，然后返回搜索结果。</span>
+
+<span class="pl-k">def</span> <span class="pl-en">search</span>(<span class="pl-s1">query</span>: <span class="pl-smi">str</span>) <span class="pl-c1">-&gt;</span> <span class="pl-smi">str</span>:
+    <span class="pl-s">"""</span>
+<span class="pl-s">    一个基于SerpApi的实战网页搜索引擎工具。</span>
+<span class="pl-s">    它会智能地解析搜索结果，优先返回直接答案或知识图谱信息。</span>
+<span class="pl-s">    """</span>
+    <span class="pl-en">print</span>(<span class="pl-s">f"🔍 正在执行 [SerpApi] 网页搜索: <span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">query</span><span class="pl-kos">}</span></span>"</span>)
+    <span class="pl-k">try</span>:
+        <span class="pl-s1">api_key</span> <span class="pl-c1">=</span> <span class="pl-s1">os</span>.<span class="pl-c1">getenv</span>(<span class="pl-s">"SERPAPI_API_KEY"</span>)
+        <span class="pl-k">if</span> <span class="pl-c1">not</span> <span class="pl-s1">api_key</span>:
+            <span class="pl-k">return</span> <span class="pl-s">"错误:SERPAPI_API_KEY 未在 .env 文件中配置。"</span>
+
+        <span class="pl-s1">params</span> <span class="pl-c1">=</span> {
+            <span class="pl-s">"engine"</span>: <span class="pl-s">"google"</span>,
+            <span class="pl-s">"q"</span>: <span class="pl-s1">query</span>,
+            <span class="pl-s">"api_key"</span>: <span class="pl-s1">api_key</span>,
+            <span class="pl-s">"gl"</span>: <span class="pl-s">"cn"</span>,  <span class="pl-c"># 国家代码</span>
+            <span class="pl-s">"hl"</span>: <span class="pl-s">"zh-cn"</span>, <span class="pl-c"># 语言代码</span>
+        }
+        
+        <span class="pl-s1">client</span> <span class="pl-c1">=</span> <span class="pl-en">SerpApiClient</span>(<span class="pl-s1">params</span>)
+        <span class="pl-s1">results</span> <span class="pl-c1">=</span> <span class="pl-s1">client</span>.<span class="pl-c1">get_dict</span>()
+        
+        <span class="pl-c"># 智能解析:优先寻找最直接的答案</span>
+        <span class="pl-k">if</span> <span class="pl-s">"answer_box_list"</span> <span class="pl-c1">in</span> <span class="pl-s1">results</span>:
+            <span class="pl-k">return</span> <span class="pl-s">"<span class="pl-cce">\n</span>"</span>.<span class="pl-c1">join</span>(<span class="pl-s1">results</span>[<span class="pl-s">"answer_box_list"</span>])
+        <span class="pl-k">if</span> <span class="pl-s">"answer_box"</span> <span class="pl-c1">in</span> <span class="pl-s1">results</span> <span class="pl-c1">and</span> <span class="pl-s">"answer"</span> <span class="pl-c1">in</span> <span class="pl-s1">results</span>[<span class="pl-s">"answer_box"</span>]:
+            <span class="pl-k">return</span> <span class="pl-s1">results</span>[<span class="pl-s">"answer_box"</span>][<span class="pl-s">"answer"</span>]
+        <span class="pl-k">if</span> <span class="pl-s">"knowledge_graph"</span> <span class="pl-c1">in</span> <span class="pl-s1">results</span> <span class="pl-c1">and</span> <span class="pl-s">"description"</span> <span class="pl-c1">in</span> <span class="pl-s1">results</span>[<span class="pl-s">"knowledge_graph"</span>]:
+            <span class="pl-k">return</span> <span class="pl-s1">results</span>[<span class="pl-s">"knowledge_graph"</span>][<span class="pl-s">"description"</span>]
+        <span class="pl-k">if</span> <span class="pl-s">"organic_results"</span> <span class="pl-c1">in</span> <span class="pl-s1">results</span> <span class="pl-c1">and</span> <span class="pl-s1">results</span>[<span class="pl-s">"organic_results"</span>]:
+            <span class="pl-c"># 如果没有直接答案，则返回前三个有机结果的摘要</span>
+            <span class="pl-s1">snippets</span> <span class="pl-c1">=</span> [
+                <span class="pl-s">f"[<span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">i</span><span class="pl-c1">+</span><span class="pl-c1">1</span><span class="pl-kos">}</span></span>] <span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">res</span>.<span class="pl-c1">get</span>(<span class="pl-s">'title'</span>, <span class="pl-s">''</span>)<span class="pl-kos">}</span></span><span class="pl-cce">\n</span><span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">res</span>.<span class="pl-c1">get</span>(<span class="pl-s">'snippet'</span>, <span class="pl-s">''</span>)<span class="pl-kos">}</span></span>"</span>
+                <span class="pl-k">for</span> <span class="pl-s1">i</span>, <span class="pl-s1">res</span> <span class="pl-c1">in</span> <span class="pl-en">enumerate</span>(<span class="pl-s1">results</span>[<span class="pl-s">"organic_results"</span>][:<span class="pl-c1">3</span>])
+            ]
+            <span class="pl-k">return</span> <span class="pl-s">"<span class="pl-cce">\n</span><span class="pl-cce">\n</span>"</span>.<span class="pl-c1">join</span>(<span class="pl-s1">snippets</span>)
+        
+        <span class="pl-k">return</span> <span class="pl-s">f"对不起，没有找到关于 '<span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">query</span><span class="pl-kos">}</span></span>' 的信息。"</span>
+
+    <span class="pl-k">except</span> <span class="pl-v">Exception</span> <span class="pl-k">as</span> <span class="pl-s1">e</span>:
+        <span class="pl-k">return</span> <span class="pl-s">f"搜索时发生错误: <span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">e</span><span class="pl-kos">}</span></span>"</span>
+     <span class="pl-c"># 在上述代码中，首先会检查是否存在 `answer_box`（Google的答案摘要框）或 `knowledge_graph`（知识图谱）等信息，如果存在，就直接返回这些最精确的答案。如果不存在，它才会退而求其次，返回前三个常规搜索结果的摘要。这种“智能解析”能为LLM提供质量更高的信息输入。</span>
+
+
+
+
+<span class="pl-c"># （2）构建通用的工具执行器</span>
+<span class="pl-c"># 当智能体需要使用多种工具时（例如，除了搜索，还可能需要计算、查询数据库等），我们需要一个统一的管理器来注册和调度这些工具。为此，我们创建一个 `ToolExecutor` 类。</span>
+
+<span class="pl-k">from</span> <span class="pl-s1">typing</span> <span class="pl-k">import</span> <span class="pl-v">Dict</span>, <span class="pl-v">Any</span>
+
+<span class="pl-k">class</span> <span class="pl-v">ToolExecutor</span>:
+    <span class="pl-s">"""</span>
+<span class="pl-s">    一个工具执行器，负责管理和执行工具。</span>
+<span class="pl-s">    """</span>
+    <span class="pl-k">def</span> <span class="pl-en">__init__</span>(<span class="pl-s1">self</span>):
+        <span class="pl-s1">self</span>.<span class="pl-c1">tools</span>: <span class="pl-v">Dict</span>[<span class="pl-smi">str</span>, <span class="pl-v">Dict</span>[<span class="pl-smi">str</span>, <span class="pl-smi">Any</span>]] <span class="pl-c1">=</span> {}
+
+    <span class="pl-k">def</span> <span class="pl-en">registerTool</span>(<span class="pl-s1">self</span>, <span class="pl-s1">name</span>: <span class="pl-smi">str</span>, <span class="pl-s1">description</span>: <span class="pl-smi">str</span>, <span class="pl-s1">func</span>: <span class="pl-smi">callable</span>):
+        <span class="pl-s">"""</span>
+<span class="pl-s">        向工具箱中注册一个新工具。</span>
+<span class="pl-s">        """</span>
+        <span class="pl-k">if</span> <span class="pl-s1">name</span> <span class="pl-c1">in</span> <span class="pl-s1">self</span>.<span class="pl-c1">tools</span>:
+            <span class="pl-en">print</span>(<span class="pl-s">f"警告:工具 '<span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">name</span><span class="pl-kos">}</span></span>' 已存在，将被覆盖。"</span>)
+        <span class="pl-s1">self</span>.<span class="pl-c1">tools</span>[<span class="pl-s1">name</span>] <span class="pl-c1">=</span> {<span class="pl-s">"description"</span>: <span class="pl-s1">description</span>, <span class="pl-s">"func"</span>: <span class="pl-s1">func</span>}
+        <span class="pl-en">print</span>(<span class="pl-s">f"工具 '<span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">name</span><span class="pl-kos">}</span></span>' 已注册。"</span>)
+
+    <span class="pl-k">def</span> <span class="pl-en">getTool</span>(<span class="pl-s1">self</span>, <span class="pl-s1">name</span>: <span class="pl-smi">str</span>) <span class="pl-c1">-&gt;</span> <span class="pl-smi">callable</span>:
+        <span class="pl-s">"""</span>
+<span class="pl-s">        根据名称获取一个工具的执行函数。</span>
+<span class="pl-s">        """</span>
+        <span class="pl-k">return</span> <span class="pl-s1">self</span>.<span class="pl-c1">tools</span>.<span class="pl-c1">get</span>(<span class="pl-s1">name</span>, {}).<span class="pl-c1">get</span>(<span class="pl-s">"func"</span>)
+
+    <span class="pl-k">def</span> <span class="pl-en">getAvailableTools</span>(<span class="pl-s1">self</span>) <span class="pl-c1">-&gt;</span> <span class="pl-smi">str</span>:
+        <span class="pl-s">"""</span>
+<span class="pl-s">        获取所有可用工具的格式化描述字符串。</span>
+<span class="pl-s">        """</span>
+        <span class="pl-k">return</span> <span class="pl-s">"<span class="pl-cce">\n</span>"</span>.<span class="pl-c1">join</span>([
+            <span class="pl-s">f"- <span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">name</span><span class="pl-kos">}</span></span>: <span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">info</span>[<span class="pl-s">'description'</span>]<span class="pl-kos">}</span></span>"</span> 
+            <span class="pl-k">for</span> <span class="pl-s1">name</span>, <span class="pl-s1">info</span> <span class="pl-c1">in</span> <span class="pl-s1">self</span>.<span class="pl-c1">tools</span>.<span class="pl-c1">items</span>()
+        ])
+
+
+
+<span class="pl-c1">&lt;</span>!<span class="pl-c1">-</span><span class="pl-c1">-</span> (<span class="pl-c1">3</span>)<span class="pl-s1">测试</span>
+
+<span class="pl-s1">现在</span>，<span class="pl-s1">我们将</span> <span class="pl-s">`search`</span> <span class="pl-s1">工具注册到</span> <span class="pl-s">`ToolExecutor`</span> <span class="pl-s1">中</span>，<span class="pl-s1">并模拟一次调用</span>，<span class="pl-s1">以验证整个流程是否正常工作</span>。 <span class="pl-c1">-</span><span class="pl-c1">-</span><span class="pl-s1"></span><span class="pl-c1">&gt;</span>
+
+<span class="pl-c"># --- 工具初始化与使用示例 ---</span>
+<span class="pl-s1">if</span> <span class="pl-s1">__name__</span> <span class="pl-c1">==</span> <span class="pl-s">'__main__'</span>:
+    <span class="pl-c"># 1. 初始化工具执行器</span>
+    <span class="pl-s1">toolExecutor</span> <span class="pl-c1">=</span> <span class="pl-en">ToolExecutor</span>()
+
+    <span class="pl-c"># 2. 注册我们的实战搜索工具</span>
+    <span class="pl-s1">search_description</span> <span class="pl-c1">=</span> <span class="pl-s">"一个网页搜索引擎。当你需要回答关于时事、事实以及在你的知识库中找不到的信息时，应使用此工具。"</span>
+    <span class="pl-s1">toolExecutor</span>.<span class="pl-c1">registerTool</span>(<span class="pl-s">"Search"</span>, <span class="pl-s1">search_description</span>, <span class="pl-s1">search</span>)
+    
+    <span class="pl-c"># 3. 打印可用的工具</span>
+    <span class="pl-en">print</span>(<span class="pl-s">"<span class="pl-cce">\n</span>--- 可用的工具 ---"</span>)
+    <span class="pl-en">print</span>(<span class="pl-s1">toolExecutor</span>.<span class="pl-c1">getAvailableTools</span>())
+
+    <span class="pl-c"># 4. 智能体的Action调用，这次我们问一个实时性的问题</span>
+    <span class="pl-en">print</span>(<span class="pl-s">"<span class="pl-cce">\n</span>--- 执行 Action: Search['英伟达最新的GPU型号是什么'] ---"</span>)
+    <span class="pl-s1">tool_name</span> <span class="pl-c1">=</span> <span class="pl-s">"Search"</span>
+    <span class="pl-s1">tool_input</span> <span class="pl-c1">=</span> <span class="pl-s">"英伟达最新的GPU型号是什么"</span>
+
+    <span class="pl-s1">tool_function</span> <span class="pl-c1">=</span> <span class="pl-s1">toolExecutor</span>.<span class="pl-c1">getTool</span>(<span class="pl-s1">tool_name</span>)
+    <span class="pl-k">if</span> <span class="pl-s1">tool_function</span>:
+        <span class="pl-s1">observation</span> <span class="pl-c1">=</span> <span class="pl-en">tool_function</span>(<span class="pl-s1">tool_input</span>)
+        <span class="pl-en">print</span>(<span class="pl-s">"--- 观察 (Observation) ---"</span>)
+        <span class="pl-en">print</span>(<span class="pl-s1">observation</span>)
+    <span class="pl-k">else</span>:
+        <span class="pl-en">print</span>(<span class="pl-s">f"错误:未找到名为 '<span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">tool_name</span><span class="pl-kos">}</span></span>' 的工具。"</span>)
+        
+<span class="pl-c1">&gt;&gt;</span><span class="pl-c1">&gt;</span>
+<span class="pl-s1">工具</span> <span class="pl-s">'Search'</span> <span class="pl-s1">已注册</span>。
+
+<span class="pl-c1">-</span><span class="pl-c1">-</span><span class="pl-c1">-</span> <span class="pl-s1">可用的工具</span> <span class="pl-c1">-</span><span class="pl-c1">-</span><span class="pl-c1">-</span>
+<span class="pl-c1">-</span> <span class="pl-v">Search</span>: <span class="pl-s1">一个网页搜索引擎</span>。<span class="pl-s1">当你需要回答关于时事</span>、<span class="pl-s1">事实以及在你的知识库中找不到的信息时</span>，<span class="pl-s1">应使用此工具</span>。
+
+<span class="pl-c1">-</span><span class="pl-c1">-</span><span class="pl-c1">-</span> <span class="pl-s1">执行</span> <span class="pl-v">Action</span>: <span class="pl-v">Search</span>[<span class="pl-s">'英伟达最新的GPU型号是什么'</span>] <span class="pl-c1">-</span><span class="pl-c1">-</span><span class="pl-c1">-</span>
+🔍 <span class="pl-s1">正在执行</span> [<span class="pl-v">SerpApi</span>] <span class="pl-s1">网页搜索</span>: <span class="pl-s1">英伟达最新的GPU型号是什么</span>
+<span class="pl-c1">-</span><span class="pl-c1">-</span><span class="pl-c1">-</span> <span class="pl-en">观察</span> (<span class="pl-v">Observation</span>) <span class="pl-c1">-</span><span class="pl-c1">-</span><span class="pl-c1">-</span>
+[<span class="pl-c1">1</span>] <span class="pl-v">GeForce</span> <span class="pl-c1">RTX</span> <span class="pl-c1">50</span> <span class="pl-s1">系列显卡</span>
+<span class="pl-v">GeForce</span> <span class="pl-c1">RTX</span>™ <span class="pl-c1">50</span> <span class="pl-s1">系列GPU</span> <span class="pl-s1">搭载NVIDIA</span> <span class="pl-v">Blackwell</span> <span class="pl-s1">架构</span>，<span class="pl-s1">为游戏玩家和创作者带来全新玩法</span>。<span class="pl-c1">RTX</span> <span class="pl-c1">50</span> <span class="pl-s1">系列具备强大的AI</span> <span class="pl-s1">算力</span>，<span class="pl-s1">带来升级体验和更逼真的画面</span>。
+
+[<span class="pl-c1">2</span>] <span class="pl-s1">比较GeForce</span> <span class="pl-s1">系列最新一代显卡和前代显卡</span>
+<span class="pl-s1">比较最新一代RTX</span> <span class="pl-c1">30</span> <span class="pl-s1">系列显卡和前代的RTX</span> <span class="pl-c1">20</span> <span class="pl-s1">系列</span>、<span class="pl-c1">GTX</span> <span class="pl-c1">10</span> <span class="pl-s1">和900</span> <span class="pl-s1">系列显卡</span>。<span class="pl-s1">查看规格</span>、<span class="pl-s1">功能</span>、<span class="pl-s1">技术支持等内容</span>。
+
+[<span class="pl-c1">3</span>] <span class="pl-v">GeForce</span> <span class="pl-s1">显卡</span><span class="pl-c1">|</span> <span class="pl-c1">NVIDIA</span>
+<span class="pl-c1">DRIVE</span> <span class="pl-c1">AGX</span>. <span class="pl-c1">强大的车载计算能力</span>，<span class="pl-s1">适用于AI</span> <span class="pl-s1">驱动的智能汽车系统</span> · <span class="pl-v">Clara</span> <span class="pl-c1">AGX</span>. <span class="pl-c1">适用于创新型医疗设备和成像的AI</span> <span class="pl-s1">计算</span>. <span class="pl-c1">游戏和创作</span>. <span class="pl-c1">GeForce</span>. <span class="pl-c1">探索显卡</span>、<span class="pl-s1">游戏解决方案</span>、<span class="pl-c1">AI</span> ...</pre></div>
+<p>至此，我们已经为智能体配备了连接真实世界互联网的<code class="notranslate">Search</code>工具，为后续的ReAct循环提供了坚实的基础。</p>
+<h3>4.2.3 ReAct 智能体的编码实现</h3>
+<p>现在，我们将所有独立的组件，LLM客户端和工具执行器组装起来，构建一个完整的 ReAct 智能体。我们将通过一个 <code class="notranslate">ReActAgent</code> 类来封装其核心逻辑。为了便于理解，我们将这个类的实现过程拆分为以下几个关键部分进行讲解。</p>
+<div class="highlight highlight-source-python"><pre class="notranslate"><span class="pl-k">import</span> <span class="pl-s1">re</span>
+<span class="pl-k">from</span> <span class="pl-s1">llm_client</span> <span class="pl-k">import</span> <span class="pl-v">HelloAgentsLLM</span>    <span class="pl-c">#从两个文件中导入对应类和函数</span>
+<span class="pl-k">from</span> <span class="pl-s1">tools</span> <span class="pl-k">import</span> <span class="pl-s1">search</span>, <span class="pl-v">ToolExecutor</span>
+
+<span class="pl-c"># ReAct 提示词模板</span>
+<span class="pl-c"># 这个模板定义了智能体与LLM之间交互的规范：</span>
+<span class="pl-c"># 角色定义： “你是一个有能力调用外部工具的智能助手”，设定了LLM的角色。</span>
+<span class="pl-c"># 工具清单 (`{tools}`)： 告知LLM它有哪些可用的“手脚”。</span>
+<span class="pl-c"># 格式规约 (`Thought`/`Action`)： 这是最重要的部分，它强制LLM的输出具有结构性，使我们能通过代码精确解析其意图。</span>
+<span class="pl-c"># 动态上下文 (`{question}`/`{history}`)： 将用户的原始问题和不断累积的交互历史注入，让LLM基于完整的上下文进行决策。</span>
+
+<span class="pl-c1">REACT_PROMPT_TEMPLATE</span> <span class="pl-c1">=</span> <span class="pl-s">"""</span>
+<span class="pl-s">请注意，你是一个有能力调用外部工具的智能助手。</span>
+<span class="pl-s"></span>
+<span class="pl-s">可用工具如下:</span>
+<span class="pl-s">{tools}</span>
+<span class="pl-s"></span>
+<span class="pl-s">请严格按照以下格式进行回应:</span>
+<span class="pl-s"></span>
+<span class="pl-s">Thought: 你的思考过程，用于分析问题、拆解任务和规划下一步行动。</span>
+<span class="pl-s">Action: 你决定采取的行动，必须是以下格式之一:</span>
+<span class="pl-s">- `{{tool_name}}[{{tool_input}}]`:调用一个可用工具。</span>
+<span class="pl-s">- `Finish[最终答案]`:当你认为已经获得最终答案时。</span>
+<span class="pl-s">- 当你收集到足够的信息，能够回答用户的最终问题时，你必须在Action:字段后使用 Finish[最终答案] 来输出最终答案。</span>
+<span class="pl-s"></span>
+<span class="pl-s">现在，请开始解决以下问题:</span>
+<span class="pl-s">Question: {question}</span>
+<span class="pl-s">History: {history}</span>
+<span class="pl-s">"""</span>
+
+
+
+
+<span class="pl-k">class</span> <span class="pl-v">ReActAgent</span>:
+    <span class="pl-k">def</span> <span class="pl-en">__init__</span>(
+        <span class="pl-s1">self</span>,
+        <span class="pl-s1">llm_client</span>: <span class="pl-smi">HelloAgentsLLM</span>,
+        <span class="pl-s1">tool_executor</span>: <span class="pl-smi">ToolExecutor</span>,
+        <span class="pl-s1">max_steps</span>: <span class="pl-smi">int</span> <span class="pl-c1">=</span> <span class="pl-c1">5</span>,
+    ):
+        <span class="pl-s1">self</span>.<span class="pl-c1">llm_client</span> <span class="pl-c1">=</span> <span class="pl-s1">llm_client</span>
+        <span class="pl-s1">self</span>.<span class="pl-c1">tool_executor</span> <span class="pl-c1">=</span> <span class="pl-s1">tool_executor</span>
+        <span class="pl-s1">self</span>.<span class="pl-c1">max_steps</span> <span class="pl-c1">=</span> <span class="pl-s1">max_steps</span>
+        <span class="pl-s1">self</span>.<span class="pl-c1">history</span> <span class="pl-c1">=</span> []
+
+
+    <span class="pl-c"># LLM 返回的是纯文本，我们需要从中精确地提取出Thought和Action。这是通过几个辅助解析函数完成的，它们通常使用正则表达式来实现。</span>
+    <span class="pl-k">def</span> <span class="pl-en">_parse_output</span>(<span class="pl-s1">self</span>, <span class="pl-s1">text</span>: <span class="pl-smi">str</span>):
+        <span class="pl-s">"""解析LLM的输出，提取Thought和Action。"""</span>
+        <span class="pl-c"># Thought: 匹配到 Action: 或文本末尾</span>
+        <span class="pl-s1">thought_match</span> <span class="pl-c1">=</span> <span class="pl-s1">re</span>.<span class="pl-c1">search</span>(<span class="pl-s">r"Thought:\s*(.*?)(?=\nAction:|$)"</span>, <span class="pl-s1">text</span>, <span class="pl-s1">re</span>.<span class="pl-c1">DOTALL</span>)
+        <span class="pl-c"># Action: 匹配到文本末尾</span>
+        <span class="pl-s1">action_match</span> <span class="pl-c1">=</span> <span class="pl-s1">re</span>.<span class="pl-c1">search</span>(<span class="pl-s">r"Action:\s*(.*?)$"</span>, <span class="pl-s1">text</span>, <span class="pl-s1">re</span>.<span class="pl-c1">DOTALL</span>)
+        <span class="pl-s1">thought</span> <span class="pl-c1">=</span> <span class="pl-s1">thought_match</span>.<span class="pl-c1">group</span>(<span class="pl-c1">1</span>).<span class="pl-c1">strip</span>() <span class="pl-k">if</span> <span class="pl-s1">thought_match</span> <span class="pl-k">else</span> <span class="pl-c1">None</span>
+        <span class="pl-s1">action</span> <span class="pl-c1">=</span> <span class="pl-s1">action_match</span>.<span class="pl-c1">group</span>(<span class="pl-c1">1</span>).<span class="pl-c1">strip</span>() <span class="pl-k">if</span> <span class="pl-s1">action_match</span> <span class="pl-k">else</span> <span class="pl-c1">None</span>
+        <span class="pl-k">return</span> <span class="pl-s1">thought</span>, <span class="pl-s1">action</span>
+
+    <span class="pl-k">def</span> <span class="pl-en">_parse_action</span>(<span class="pl-s1">self</span>, <span class="pl-s1">action_text</span>: <span class="pl-smi">str</span>):
+        <span class="pl-s">"""解析Action字符串，提取工具名称和输入。"""</span>
+        <span class="pl-s1">match</span> <span class="pl-c1">=</span> <span class="pl-s1">re</span>.<span class="pl-c1">match</span>(<span class="pl-s">r"(\w+)\[(.*)\]"</span>, <span class="pl-s1">action_text</span>, <span class="pl-s1">re</span>.<span class="pl-c1">DOTALL</span>)
+        <span class="pl-k">if</span> <span class="pl-s1">match</span>:
+            <span class="pl-k">return</span> <span class="pl-s1">match</span>.<span class="pl-c1">group</span>(<span class="pl-c1">1</span>), <span class="pl-s1">match</span>.<span class="pl-c1">group</span>(<span class="pl-c1">2</span>)
+        <span class="pl-k">return</span> <span class="pl-c1">None</span>, <span class="pl-c1">None</span>
+
+
+
+     <span class="pl-c"># ReActAgent 的核心是一个循环，它不断地“格式化提示词 -&gt; 调用LLM -&gt; 执行动作 -&gt; 整合结果”，</span>
+     <span class="pl-c"># 直到任务完成或达到最大步数限制。</span>
+    <span class="pl-k">def</span> <span class="pl-en">run</span>(<span class="pl-s1">self</span>, <span class="pl-s1">question</span>: <span class="pl-smi">str</span>):
+        <span class="pl-s">"""</span>
+<span class="pl-s">        运行ReAct智能体来回答一个问题。</span>
+<span class="pl-s">        """</span>
+        <span class="pl-s1">self</span>.<span class="pl-c1">history</span> <span class="pl-c1">=</span> []  <span class="pl-c"># 每次运行时重置历史记录</span>
+        <span class="pl-s1">current_step</span> <span class="pl-c1">=</span> <span class="pl-c1">0</span>
+
+        <span class="pl-k">while</span> <span class="pl-s1">current_step</span> <span class="pl-c1">&lt;</span> <span class="pl-s1">self</span>.<span class="pl-c1">max_steps</span>:
+            <span class="pl-s1">current_step</span> <span class="pl-c1">+=</span> <span class="pl-c1">1</span>
+            <span class="pl-en">print</span>(<span class="pl-s">f"--- 第<span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">current_step</span><span class="pl-kos">}</span></span>步 ---"</span>)
+
+            <span class="pl-c"># 1. 格式化提示词</span>
+            <span class="pl-s1">tools_desc</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">tool_executor</span>.<span class="pl-c1">getAvailableTools</span>()
+            <span class="pl-s1">history_str</span> <span class="pl-c1">=</span> <span class="pl-s">"<span class="pl-cce">\n</span>"</span>.<span class="pl-c1">join</span>(<span class="pl-s1">self</span>.<span class="pl-c1">history</span>)
+            <span class="pl-s1">prompt</span> <span class="pl-c1">=</span> <span class="pl-c1">REACT_PROMPT_TEMPLATE</span>.<span class="pl-c1">format</span>(
+                <span class="pl-s1">tools</span><span class="pl-c1">=</span><span class="pl-s1">tools_desc</span>, <span class="pl-s1">question</span><span class="pl-c1">=</span><span class="pl-s1">question</span>, <span class="pl-s1">history</span><span class="pl-c1">=</span><span class="pl-s1">history_str</span>
+            )
+
+            <span class="pl-c"># 2. 调用LLM进行思考</span>
+            <span class="pl-s1">messages</span> <span class="pl-c1">=</span> [{<span class="pl-s">"role"</span>: <span class="pl-s">"user"</span>, <span class="pl-s">"content"</span>: <span class="pl-s1">prompt</span>}]
+            <span class="pl-s1">response_text</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">llm_client</span>.<span class="pl-c1">think</span>(<span class="pl-s1">messages</span><span class="pl-c1">=</span><span class="pl-s1">messages</span>)
+            
+
+            <span class="pl-c"># 后面这段代码是Action的执行中心。它首先检查是否为Finish指令，如果是，则流程结束。否则，它会通过tool_executor获取对应的工具函数并执行，得到observation。</span>
+            <span class="pl-c"># 3.解析LLM的输出</span>
+            <span class="pl-s1">thought</span>, <span class="pl-s1">action</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">_parse_output</span>(<span class="pl-s1">response_text</span>)
+
+            <span class="pl-k">if</span> <span class="pl-s1">thought</span>:
+                <span class="pl-en">print</span>(<span class="pl-s">f"思考: <span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">thought</span><span class="pl-kos">}</span></span>"</span>)
+
+            <span class="pl-k">if</span> <span class="pl-c1">not</span> <span class="pl-s1">action</span>:
+                <span class="pl-en">print</span>(<span class="pl-s">"警告：未能解析出有效的Action，流程终止。"</span>)
+                <span class="pl-k">break</span>
+
+            <span class="pl-c"># 4.执行Action</span>
+            <span class="pl-k">if</span> <span class="pl-s1">action</span>.<span class="pl-c1">startswith</span>(<span class="pl-s">"Finish"</span>):
+                <span class="pl-c"># 如果是Finish指令，提取最终答案并结束</span>
+                <span class="pl-s1">final_answer</span> <span class="pl-c1">=</span> <span class="pl-s1">re</span>.<span class="pl-c1">match</span>(<span class="pl-s">r"Finish\[(.*)\]"</span>, <span class="pl-s1">action</span>).<span class="pl-c1">group</span>(<span class="pl-c1">1</span>)
+                <span class="pl-en">print</span>(<span class="pl-s">f"🎉 最终答案: <span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">final_answer</span><span class="pl-kos">}</span></span>"</span>)
+                <span class="pl-k">return</span> <span class="pl-s1">final_answer</span>
+
+            <span class="pl-s1">tool_name</span>, <span class="pl-s1">tool_input</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">_parse_action</span>(<span class="pl-s1">action</span>)
+            <span class="pl-k">if</span> <span class="pl-c1">not</span> <span class="pl-s1">tool_input</span> <span class="pl-c1">or</span> <span class="pl-c1">not</span> <span class="pl-s1">tool_name</span>:
+                <span class="pl-c"># ... 处理无效Action格式 ...</span>
+                <span class="pl-k">continue</span>
+
+            <span class="pl-en">print</span>(<span class="pl-s">f"🎬 行动: <span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">tool_name</span><span class="pl-kos">}</span></span>[<span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">tool_input</span><span class="pl-kos">}</span></span>]"</span>)
+
+            <span class="pl-s1">tool_function</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">tool_executor</span>.<span class="pl-c1">getTool</span>(<span class="pl-s1">tool_name</span>)
+            <span class="pl-k">if</span> <span class="pl-c1">not</span> <span class="pl-s1">tool_function</span>:
+                <span class="pl-s1">observation</span> <span class="pl-c1">=</span> <span class="pl-s">f"错误:未找到名为 '<span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">tool_name</span><span class="pl-kos">}</span></span>' 的工具。"</span>
+            <span class="pl-k">else</span>:
+                <span class="pl-s1">observation</span> <span class="pl-c1">=</span> <span class="pl-en">tool_function</span>(<span class="pl-s1">tool_input</span>)  <span class="pl-c"># 调用真实工具</span>
+            <span class="pl-en">print</span>(<span class="pl-s">f"👀 观察: <span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">observation</span><span class="pl-kos">}</span></span>"</span>)
+
+            <span class="pl-c"># 将本轮的Action和Observation添加到历史记录中</span>
+            <span class="pl-s1">self</span>.<span class="pl-c1">history</span>.<span class="pl-c1">append</span>(<span class="pl-s">f"Action: <span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">action</span><span class="pl-kos">}</span></span>"</span>)
+            <span class="pl-s1">self</span>.<span class="pl-c1">history</span>.<span class="pl-c1">append</span>(<span class="pl-s">f"Observation: <span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">observation</span><span class="pl-kos">}</span></span>"</span>)
+
+        <span class="pl-c"># 循环结束</span>
+        <span class="pl-en">print</span>(<span class="pl-s">"已达到最大步数，流程终止。"</span>)
+        <span class="pl-k">return</span> <span class="pl-c1">None</span>
+
+
+<span class="pl-k">if</span> <span class="pl-s1">__name__</span> <span class="pl-c1">==</span> <span class="pl-s">"__main__"</span>:
+    <span class="pl-s1">llm</span> <span class="pl-c1">=</span> <span class="pl-en">HelloAgentsLLM</span>()
+    <span class="pl-s1">tool_executor</span> <span class="pl-c1">=</span> <span class="pl-en">ToolExecutor</span>()
+    <span class="pl-s1">search_desc</span> <span class="pl-c1">=</span> <span class="pl-s">"一个网页搜索引擎。当你需要回答关于时事、事实以及在你的知识库中找不到的信息时，应使用此工具。"</span>
+    <span class="pl-s1">tool_executor</span>.<span class="pl-c1">registerTool</span>(<span class="pl-s">"Search"</span>, <span class="pl-s1">search_desc</span>, <span class="pl-s1">search</span>)
+    <span class="pl-s1">agent</span> <span class="pl-c1">=</span> <span class="pl-en">ReActAgent</span>(<span class="pl-s1">llm_client</span><span class="pl-c1">=</span><span class="pl-s1">llm</span>, <span class="pl-s1">tool_executor</span><span class="pl-c1">=</span><span class="pl-s1">tool_executor</span>)
+    <span class="pl-s1">question</span> <span class="pl-c1">=</span> <span class="pl-s">"华为最新的手机是哪一款？它的主要卖点是什么？"</span>
+    <span class="pl-s1">agent</span>.<span class="pl-c1">run</span>(<span class="pl-s1">question</span>)</pre></div>
+<h3>4.2.4 ReAct 的特点、局限性与调试技巧</h3>
+<p>通过亲手实现一个 ReAct 智能体，我们不仅掌握了其工作流程，也应该对其内在机制有了更深刻的认识。任何技术范式都有其闪光点和待改进之处，本节将对 ReAct 进行总结。</p>
+<p>（1）ReAct 的主要特点</p>
+<ol>
+<li><strong>高可解释性</strong>：ReAct 最大的优点之一就是透明。通过 <code class="notranslate">Thought</code> 链，我们可以清晰地看到智能体每一步的“心路历程”——它为什么会选择这个工具，下一步又打算做什么。这对于理解、信任和调试智能体的行为至关重要。</li>
+<li><strong>动态规划与纠错能力</strong>：与一次性生成完整计划的范式不同，ReAct 是“走一步，看一步”。它根据每一步从外部世界获得的 <code class="notranslate">Observation</code> 来动态调整后续的 <code class="notranslate">Thought</code> 和 <code class="notranslate">Action</code>。如果上一步的搜索结果不理想，它可以在下一步中修正搜索词，重新尝试。</li>
+<li><strong>工具协同能力</strong>：ReAct 范式天然地将大语言模型的推理能力与外部工具的执行能力结合起来。LLM 负责运筹帷幄（规划和推理），工具负责解决具体问题（搜索、计算），二者协同工作，突破了单一 LLM 在知识时效性、计算准确性等方面的固有局限。</li>
+</ol>
+<p>（2）ReAct 的固有局限性</p>
+<ol>
+<li><strong>对LLM自身能力的强依赖</strong>：ReAct 流程的成功与否，高度依赖于底层 LLM 的综合能力。如果 LLM 的逻辑推理能力、指令遵循能力或格式化输出能力不足，就很容易在 <code class="notranslate">Thought</code> 环节产生错误的规划，或者在 <code class="notranslate">Action</code> 环节生成不符合格式的指令，导致整个流程中断。</li>
+<li><strong>执行效率问题</strong>：由于其循序渐进的特性，完成一个任务通常需要多次调用 LLM。每一次调用都伴随着网络延迟和计算成本。对于需要很多步骤的复杂任务，这种串行的“思考-行动”循环可能会导致较高的总耗时和费用。</li>
+<li><strong>提示词的脆弱性</strong>：整个机制的稳定运行建立在一个精心设计的提示词模板之上。模板中的任何微小变动，甚至是用词的差异，都可能影响 LLM 的行为。此外，并非所有模型都能持续稳定地遵循预设的格式，这增加了在实际应用中的不确定性。</li>
+<li><strong>可能陷入局部最优</strong>：步进式的决策模式意味着智能体缺乏一个全局的、长远的规划。它可能会因为眼前的 <code class="notranslate">Observation</code> 而选择一个看似正确但长远来看并非最优的路径，甚至在某些情况下陷入“原地打转”的循环中。</li>
+</ol>
+<p>（3）调试技巧</p>
+<p>当你构建的 ReAct 智能体行为不符合预期时，可以从以下几个方面入手进行调试：</p>
+<ul>
+<li><strong>检查完整的提示词</strong>：在每次调用 LLM 之前，将最终格式化好的、包含所有历史记录的完整提示词打印出来。这是追溯 LLM 决策源头的最直接方式。</li>
+<li><strong>分析原始输出</strong>：当输出解析失败时（例如，正则表达式没有匹配到 <code class="notranslate">Action</code>），务必将 LLM 返回的原始、未经处理的文本打印出来。这能帮助你判断是 LLM 没有遵循格式，还是你的解析逻辑有误。</li>
+<li><strong>验证工具的输入与输出</strong>：检查智能体生成的 <code class="notranslate">tool_input</code> 是否是工具函数所期望的格式，同时也要确保工具返回的 <code class="notranslate">observation</code> 格式是智能体可以理解和处理的。</li>
+<li><strong>调整提示词中的示例 (Few-shot Prompting)</strong>：如果模型频繁出错，可以在提示词中加入一两个完整的“Thought-Action-Observation”成功案例，通过示例来引导模型更好地遵循你的指令。</li>
+<li><strong>尝试不同的模型或参数</strong>：更换一个能力更强的模型，或者调整 <code class="notranslate">temperature</code> 参数（通常设为0以保证输出的确定性），有时能直接解决问题。</li>
+</ul></div>
+<div style="font-size:small;margin-top:8px;float:right;">感谢你的访问，欢迎交流。</div>
+
+<button class="btn btn-block" type="button" onclick="openComments()" id="cmButton">评论</button>
+<div class="comments" id="comments"></div>
+
+</div>
+    <div id="footer"><div id="footer1">Copyright © <span id="copyrightYear"></span> <a href="https://JustHeart31.github.io">JH Blog</a></div>
+<div id="footer2">
+    <span id="runday"></span><span>Powered by <a href="https://meekdai.com/Gmeek.html" target="_blank">Gmeek</a></span>
+</div>
+
+<script>
+var now=new Date();
+document.getElementById("copyrightYear").innerHTML=now.getFullYear();
+
+if(""!=""){
+    var startSite=new Date("");
+    var diff=now.getTime()-startSite.getTime();
+    var diffDay=Math.floor(diff/(1000*60*60*24));
+    document.getElementById("runday").innerHTML="网站运行 "+diffDay+" 天"+" • ";
+}
+</script></div>
+</body>
+<script>
+var IconList={'sun': 'M8 10.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM8 12a4 4 0 100-8 4 4 0 000 8zM8 0a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0V.75A.75.75 0 018 0zm0 13a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 018 13zM2.343 2.343a.75.75 0 011.061 0l1.06 1.061a.75.75 0 01-1.06 1.06l-1.06-1.06a.75.75 0 010-1.06zm9.193 9.193a.75.75 0 011.06 0l1.061 1.06a.75.75 0 01-1.06 1.061l-1.061-1.06a.75.75 0 010-1.061zM16 8a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0116 8zM3 8a.75.75 0 01-.75.75H.75a.75.75 0 010-1.5h1.5A.75.75 0 013 8zm10.657-5.657a.75.75 0 010 1.061l-1.061 1.06a.75.75 0 11-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zm-9.193 9.193a.75.75 0 010 1.06l-1.06 1.061a.75.75 0 11-1.061-1.06l1.06-1.061a.75.75 0 011.061 0z', 'moon': 'M9.598 1.591a.75.75 0 01.785-.175 7 7 0 11-8.967 8.967.75.75 0 01.961-.96 5.5 5.5 0 007.046-7.046.75.75 0 01.175-.786zm1.616 1.945a7 7 0 01-7.678 7.678 5.5 5.5 0 107.678-7.678z', 'sync': 'M1.705 8.005a.75.75 0 0 1 .834.656 5.5 5.5 0 0 0 9.592 2.97l-1.204-1.204a.25.25 0 0 1 .177-.427h3.646a.25.25 0 0 1 .25.25v3.646a.25.25 0 0 1-.427.177l-1.38-1.38A7.002 7.002 0 0 1 1.05 8.84a.75.75 0 0 1 .656-.834ZM8 2.5a5.487 5.487 0 0 0-4.131 1.869l1.204 1.204A.25.25 0 0 1 4.896 6H1.25A.25.25 0 0 1 1 5.75V2.104a.25.25 0 0 1 .427-.177l1.38 1.38A7.002 7.002 0 0 1 14.95 7.16a.75.75 0 0 1-1.49.178A5.5 5.5 0 0 0 8 2.5Z', 'home': 'M6.906.664a1.749 1.749 0 0 1 2.187 0l5.25 4.2c.415.332.657.835.657 1.367v7.019A1.75 1.75 0 0 1 13.25 15h-3.5a.75.75 0 0 1-.75-.75V9H7v5.25a.75.75 0 0 1-.75.75h-3.5A1.75 1.75 0 0 1 1 13.25V6.23c0-.531.242-1.034.657-1.366l5.25-4.2Zm1.25 1.171a.25.25 0 0 0-.312 0l-5.25 4.2a.25.25 0 0 0-.094.196v7.019c0 .138.112.25.25.25H5.5V8.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 .75.75v5.25h2.75a.25.25 0 0 0 .25-.25V6.23a.25.25 0 0 0-.094-.195Z', 'github': 'M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z', 'copy': 'M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z', 'check': 'M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z'};
+var utterancesLoad=0;
+
+let themeSettings={
+    "dark": ["dark","moon","#00f0ff","dark-blue"],
+    "light": ["light","sun","#ff5000","github-light"],
+    "auto": ["auto","sync","","preferred-color-scheme"]
+};
+function changeTheme(mode, icon, color, utheme){
+    document.documentElement.setAttribute("data-color-mode",mode);
+    document.getElementById("themeSwitch").setAttribute("d",value=IconList[icon]);
+    document.getElementById("themeSwitch").parentNode.style.color=color;
+    if(utterancesLoad==1){utterancesTheme(utheme);}
+}
+function modeSwitch(){
+    let currentMode=document.documentElement.getAttribute('data-color-mode');
+    let newMode = currentMode === "light" ? "dark" : currentMode === "dark" ? "auto" : "light";
+    localStorage.setItem("meek_theme", newMode);
+    if(themeSettings[newMode]){
+        changeTheme(...themeSettings[newMode]);
+    }
+}
+function utterancesTheme(theme){
+    const message={type:'set-theme',theme: theme};
+    const iframe=document.getElementsByClassName('utterances-frame')[0];
+    iframe.contentWindow.postMessage(message,'https://utteranc.es');
+}
+if(themeSettings[theme]){changeTheme(...themeSettings[theme]);}
+console.log("\n %c Gmeek last https://github.com/Meekdai/Gmeek \n","padding:5px 0;background:#02d81d;color:#fff");
+</script>
+
+<script>
+document.getElementById("pathHome").setAttribute("d",IconList["home"]);
+
+
+
+
+function openComments(){
+    cm=document.getElementById("comments");
+    cmButton=document.getElementById("cmButton");
+    cmButton.disabled=true;
+    cmButton.innerHTML="loading";
+    span=document.createElement("span");
+    span.setAttribute("class","AnimatedEllipsis");
+    cmButton.appendChild(span);
+
+    script=document.createElement("script");
+    script.setAttribute("src","https://utteranc.es/client.js");
+    script.setAttribute("repo","JustHeart31/JustHeart31.github.io");
+    script.setAttribute("issue-term","title");
+    
+    if(localStorage.getItem("meek_theme")=="dark"){script.setAttribute("theme","dark-blue");}
+    else if(localStorage.getItem("meek_theme")=="light") {script.setAttribute("theme","github-light");}
+    else{script.setAttribute("theme","preferred-color-scheme");}
+    
+    script.setAttribute("crossorigin","anonymous");
+    script.setAttribute("async","");
+    cm.appendChild(script);
+
+    int=self.setInterval("iFrameLoading()",200);
+}
+
+function iFrameLoading(){
+    var utterances=document.getElementsByClassName('utterances');
+    if(utterances.length==1){
+        if(utterances[0].style.height!=""){
+            utterancesLoad=1;
+            int=window.clearInterval(int);
+            document.getElementById("cmButton").style.display="none";
+            console.log("utterances Load OK");
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const createClipboardHTML = (codeContent, additionalClasses = '') => `
+        <pre class="notranslate"><code class="notranslate">${codeContent}</code></pre>
+        <div class="clipboard-container position-absolute right-0 top-0 ${additionalClasses}">
+            <clipboard-copy class="ClipboardButton btn m-2 p-0" role="button" style="display: inherit;">
+                <svg height="16" width="16" class="octicon octicon-copy m-2"><path d="${IconList["copy"]}"></path></svg>
+                <svg height="16" width="16" class="octicon octicon-check color-fg-success m-2 d-none"><path d="${IconList["check"]}"></path></svg>
+            </clipboard-copy>
+            <div class="copy-feedback">Copied!</div>
+        </div>
+    `;
+
+    const handleCodeElements = (selector = '') => {
+        document.querySelectorAll(selector).forEach(codeElement => {
+            const codeContent = codeElement.innerHTML;
+            const newStructure = document.createElement('div');
+            newStructure.className = 'snippet-clipboard-content position-relative overflow-auto';
+            newStructure.innerHTML = createClipboardHTML(codeContent);
+
+            const parentElement = codeElement.parentElement;
+            if (selector.includes('highlight')) {
+                parentElement.insertBefore(newStructure, codeElement.nextSibling);
+                parentElement.removeChild(codeElement);
+            } else {
+                parentElement.parentElement.replaceChild(newStructure, parentElement);
+            }
+        });
+    };
+
+    handleCodeElements('pre.notranslate > code.notranslate');
+    handleCodeElements('div.highlight > pre.notranslate');
+
+    let currentFeedback = null;
+    document.querySelectorAll('clipboard-copy').forEach(copyButton => {
+        copyButton.addEventListener('click', () => {
+            const codeContent = copyButton.closest('.snippet-clipboard-content').innerText;
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = codeContent;
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempTextArea);
+
+            const copyIcon = copyButton.querySelector('.octicon-copy');
+            const checkIcon = copyButton.querySelector('.octicon-check');
+            const copyFeedback = copyButton.nextElementSibling;
+
+            if (currentFeedback && currentFeedback !== copyFeedback) {currentFeedback.style.display = 'none';}
+            currentFeedback = copyFeedback;
+
+            copyIcon.classList.add('d-none');
+            checkIcon.classList.remove('d-none');
+            copyFeedback.style.display = 'block';
+            copyButton.style.borderColor = 'var(--color-success-fg)';
+
+            setTimeout(() => {
+                copyIcon.classList.remove('d-none');
+                checkIcon.classList.add('d-none');
+                copyFeedback.style.display = 'none';
+                copyButton.style.borderColor = '';
+            }, 2000);
+        });
+    });
+});
+
+</script>
+<script>MathJax = {tex: {inlineMath: [["$", "$"]]}};</script><script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+</html>
