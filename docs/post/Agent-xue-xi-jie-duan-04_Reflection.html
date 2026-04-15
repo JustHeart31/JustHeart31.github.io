@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html data-color-mode="light" data-dark-theme="dark_dimmed" data-light-theme="light" lang="zh-CN">
+<head>
+    <meta content="text/html; charset=utf-8" http-equiv="content-type" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link href='https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/Primer/21.0.7/primer.css' rel='stylesheet' />
+    
+    <link rel="icon" href="https://avatars.githubusercontent.com/u/171469879?v=4&size=200"><script>
+        let theme = localStorage.getItem("meek_theme") || "light";
+        document.documentElement.setAttribute("data-color-mode", theme);
+    </script>
+<meta name="description" content="# Reflection
+> <strong>提示</strong>：本章代码需基于上一节的client文件
+
+在我们已经实现的 ReAct 和 Plan-and-Solve 范式中，智能体一旦完成了任务，其工作流程便告结束。">
+<meta property="og:title" content="Agent学习阶段04_Reflection">
+<meta property="og:description" content="# Reflection
+> <strong>提示</strong>：本章代码需基于上一节的client文件
+
+在我们已经实现的 ReAct 和 Plan-and-Solve 范式中，智能体一旦完成了任务，其工作流程便告结束。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://JustHeart31.github.io/post/Agent-xue-xi-jie-duan-04_Reflection.html">
+<meta property="og:image" content="https://avatars.githubusercontent.com/u/171469879?v=4&size=200">
+<title>Agent学习阶段04_Reflection</title>
+<link href="//unpkg.com/@wooorm/starry-night@2.1.1/style/both.css" rel="stylesheet" />
+
+
+</head>
+<style>
+body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;padding: 45px;font-size: 16px;font-family: sans-serif;line-height: 1.25;}
+#header{display:flex;padding-bottom:8px;border-bottom: 1px solid var(--borderColor-muted, var(--color-border-muted));margin-bottom: 16px;}
+#footer {margin-top:64px; text-align: center;font-size: small;}
+
+</style>
+
+<style>
+.postTitle{margin: auto 0;font-size:40px;font-weight:bold;}
+.title-right{display:flex;margin:auto 0 0 auto;}
+.title-right .circle{padding: 14px 16px;margin-right:8px;}
+#postBody{border-bottom: 1px solid var(--color-border-default);padding-bottom:36px;}
+#postBody hr{height:2px;}
+#cmButton{height:48px;margin-top:48px;}
+#comments{margin-top:64px;}
+.g-emoji{font-size:24px;}
+@media (max-width: 600px) {
+    body {padding: 8px;}
+    .postTitle{font-size:24px;}
+}
+.copy-feedback {
+    display: none;
+    position: absolute;
+    top: 10px;
+    right: 50px;
+    color: var(--color-fg-on-emphasis);
+    background-color: var(--color-fg-muted);
+    border-radius: 3px;
+    padding: 5px 8px;
+    font-size: 12px;
+}
+</style>
+<style>body{letter-spacing:.2px;} img.avatar{border-radius:50%!important;box-shadow:0 8px 24px rgba(0,0,0,.14);} .post-list-item{border-radius:18px;padding:18px 20px;border:1px solid rgba(128,128,128,.16);box-shadow:0 6px 20px rgba(0,0,0,.04);transition:transform .2s ease, box-shadow .2s ease;} .post-list-item:hover{transform:translateY(-3px);box-shadow:0 12px 30px rgba(0,0,0,.08);} .post-meta{opacity:.72;font-size:.92rem;}</style>
+
+
+
+<body>
+    <div id="header">
+<h1 class="postTitle">Agent学习阶段04_Reflection</h1>
+<div class="title-right">
+    <a href="https://JustHeart31.github.io" id="buttonHome" class="btn btn-invisible circle" title="首页">
+        <svg class="octicon" width="16" height="16">
+            <path id="pathHome" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+    
+
+    <a class="btn btn-invisible circle" onclick="modeSwitch();" title="切换主题">
+        <svg class="octicon" width="16" height="16" >
+            <path id="themeSwitch" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+
+</div>
+</div>
+    <div id="content">
+<div class="markdown-body" id="postBody"><h1>Reflection</h1>
+<blockquote>
+<p><strong>提示</strong>：本章代码需基于上一节的client文件</p>
+</blockquote>
+<p>在我们已经实现的 ReAct 和 Plan-and-Solve 范式中，智能体一旦完成了任务，其工作流程便告结束。然而，它们生成的初始答案，无论是行动轨迹还是最终结果，都可能存在谬误或有待改进之处。Reflection 机制的核心思想，正是为智能体引入一种<strong>事后（post-hoc）的自我校正循环</strong>，使其能够像人类一样，审视自己的工作，发现不足，并进行迭代优化。</p>
+<h2>1 Reflection 机制的核心思想</h2>
+<p>Reflection 机制的灵感来源于人类的学习过程：我们完成初稿后会进行校对，解出数学题后会进行验算。这一思想在多个研究中得到了体现，例如 Shinn, Noah 在2023年提出的 Reflexion 框架<sup>[3]</sup>。其核心工作流程可以概括为一个简洁的三步循环：<strong>执行 -&gt; 反思 -&gt; 优化</strong>。</p>
+<ol>
+<li><strong>执行 (Execution)</strong>：首先，智能体使用我们熟悉的方法（如 ReAct 或 Plan-and-Solve）尝试完成任务，生成一个初步的解决方案或行动轨迹。这可以看作是“初稿”。</li>
+<li><strong>反思 (Reflection)</strong>：接着，智能体进入反思阶段。它会调用一个独立的、或者带有特殊提示词的大语言模型实例，来扮演一个“评审员”的角色。这个“评审员”会审视第一步生成的“初稿”，并从多个维度进行评估，例如：
+<ul>
+<li><strong>事实性错误</strong>：是否存在与常识或已知事实相悖的内容？</li>
+<li><strong>逻辑漏洞</strong>：推理过程是否存在不连贯或矛盾之处？</li>
+<li><strong>效率问题</strong>：是否有更直接、更简洁的路径来完成任务？</li>
+<li><strong>遗漏信息</strong>：是否忽略了问题的某些关键约束或方面？ 根据评估，它会生成一段结构化的<strong>反馈 (Feedback)</strong>，指出具体的问题所在和改进建议。</li>
+</ul>
+</li>
+<li><strong>优化 (Refinement)</strong>：最后，智能体将“初稿”和“反馈”作为新的上下文，再次调用大语言模型，要求它根据反馈内容对初稿进行修正，生成一个更完善的“修订稿”。</li>
+</ol>
+<p>这个循环可以重复进行多次，直到反思阶段不再发现新的问题，或者达到预设的迭代次数上限。</p>
+<p>与前两种范式相比，Reflection 的价值在于：</p>
+<ul>
+<li>它为智能体提供了一个内部纠错回路，使其不再完全依赖于外部工具的反馈（ReAct 的 Observation），从而能够修正更高层次的逻辑和策略错误。</li>
+<li>它将一次性的任务执行，转变为一个持续优化的过程，显著提升了复杂任务的最终成功率和答案质量。</li>
+<li>它为智能体构建了一个临时的<strong>“短期记忆”</strong>。整个“执行-反思-优化”的轨迹形成了一个宝贵的经验记录，智能体不仅知道最终答案，还记得自己是如何从有缺陷的初稿迭代到最终版本的。更进一步，这个记忆系统还可以是<strong>多模态的</strong>，允许智能体反思和修正文本以外的输出（如代码、图像等），为构建更强大的多模态智能体奠定了基础。</li>
+</ul>
+<h2>2 案例设定与记忆模块设计</h2>
+<p>为了在实战中体现 Reflection 机制，我们将引入记忆管理机制，因为reflection通常对应着信息的存储和提取，如果上下文足够长的情况，想让“评审员”直接获取所有的信息然后进行反思往往会传入很多冗余信息。这一步实践我们主要完成<strong>代码生成与迭代优化</strong>。</p>
+<p>这一步的目标任务是：“编写一个Python函数，找出1到n之间所有的素数 (prime numbers)。”</p>
+<p>这个任务是检验 Reflection 机制的绝佳场景：</p>
+<ol>
+<li><strong>存在明确的优化路径</strong>：大语言模型初次生成的代码很可能是一个简单但效率低下的递归实现。</li>
+<li><strong>反思点清晰</strong>：可以通过反思发现其“时间复杂度过高”或“存在重复计算”的问题。</li>
+<li><strong>优化方向明确</strong>：可以根据反馈，将其优化为更高效的迭代版本或使用备忘录模式的版本。</li>
+</ol>
+<p>Reflection 的核心在于迭代，而迭代的前提是能够记住之前的尝试和获得的反馈。因此，一个“短期记忆”模块是实现该范式的必需品。这个记忆模块将负责存储每一次“执行-反思”循环的完整轨迹。</p>
+<div class="highlight highlight-source-python"><pre class="notranslate"><span class="pl-k">from</span> <span class="pl-s1">typing</span> <span class="pl-k">import</span> <span class="pl-v">List</span>, <span class="pl-v">Dict</span>, <span class="pl-v">Any</span>, <span class="pl-v">Optional</span>
+
+<span class="pl-k">class</span> <span class="pl-v">Memory</span>:
+    <span class="pl-s">"""</span>
+<span class="pl-s">    一个简单的短期记忆模块，用于存储智能体的行动与反思轨迹。</span>
+<span class="pl-s">    """</span>
+
+    <span class="pl-k">def</span> <span class="pl-en">__init__</span>(<span class="pl-s1">self</span>):
+        <span class="pl-s">"""</span>
+<span class="pl-s">        初始化一个空列表来存储所有记录。</span>
+<span class="pl-s">        """</span>
+        <span class="pl-s1">self</span>.<span class="pl-c1">records</span>: <span class="pl-v">List</span>[<span class="pl-v">Dict</span>[<span class="pl-smi">str</span>, <span class="pl-smi">Any</span>]] <span class="pl-c1">=</span> []
+
+    <span class="pl-k">def</span> <span class="pl-en">add_record</span>(<span class="pl-s1">self</span>, <span class="pl-s1">record_type</span>: <span class="pl-smi">str</span>, <span class="pl-s1">content</span>: <span class="pl-smi">str</span>):
+        <span class="pl-s">"""</span>
+<span class="pl-s">        向记忆中添加一条新记录。</span>
+<span class="pl-s"></span>
+<span class="pl-s">        参数:</span>
+<span class="pl-s">        - record_type (str): 记录的类型 ('execution' 或 'reflection')。</span>
+<span class="pl-s">        - content (str): 记录的具体内容 (例如，生成的代码或反思的反馈)。</span>
+<span class="pl-s">        """</span>
+        <span class="pl-s1">record</span> <span class="pl-c1">=</span> {<span class="pl-s">"type"</span>: <span class="pl-s1">record_type</span>, <span class="pl-s">"content"</span>: <span class="pl-s1">content</span>}
+        <span class="pl-s1">self</span>.<span class="pl-c1">records</span>.<span class="pl-c1">append</span>(<span class="pl-s1">record</span>)
+        <span class="pl-en">print</span>(<span class="pl-s">f"📝 记忆已更新，新增一条 '<span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">record_type</span><span class="pl-kos">}</span></span>' 记录。"</span>)
+
+    <span class="pl-k">def</span> <span class="pl-en">get_trajectory</span>(<span class="pl-s1">self</span>) <span class="pl-c1">-&gt;</span> <span class="pl-smi">str</span>:
+        <span class="pl-s">"""</span>
+<span class="pl-s">        将所有记忆记录格式化为一个连贯的字符串文本，用于构建提示词。</span>
+<span class="pl-s">        """</span>
+        <span class="pl-s1">trajectory_parts</span> <span class="pl-c1">=</span> []
+        <span class="pl-k">for</span> <span class="pl-s1">record</span> <span class="pl-c1">in</span> <span class="pl-s1">self</span>.<span class="pl-c1">records</span>:
+            <span class="pl-k">if</span> <span class="pl-s1">record</span>[<span class="pl-s">'type'</span>] <span class="pl-c1">==</span> <span class="pl-s">'execution'</span>:
+                <span class="pl-s1">trajectory_parts</span>.<span class="pl-c1">append</span>(<span class="pl-s">f"--- 上一轮尝试 (代码) ---<span class="pl-cce">\n</span><span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">record</span>[<span class="pl-s">'content'</span>]<span class="pl-kos">}</span></span>"</span>)
+            <span class="pl-k">elif</span> <span class="pl-s1">record</span>[<span class="pl-s">'type'</span>] <span class="pl-c1">==</span> <span class="pl-s">'reflection'</span>:
+                <span class="pl-s1">trajectory_parts</span>.<span class="pl-c1">append</span>(<span class="pl-s">f"--- 评审员反馈 ---<span class="pl-cce">\n</span><span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">record</span>[<span class="pl-s">'content'</span>]<span class="pl-kos">}</span></span>"</span>)
+        
+        <span class="pl-k">return</span> <span class="pl-s">"<span class="pl-cce">\n</span><span class="pl-cce">\n</span>"</span>.<span class="pl-c1">join</span>(<span class="pl-s1">trajectory_parts</span>)
+
+    <span class="pl-k">def</span> <span class="pl-en">get_last_execution</span>(<span class="pl-s1">self</span>) <span class="pl-c1">-&gt;</span> <span class="pl-v">Optional</span>[<span class="pl-smi">str</span>]:
+        <span class="pl-s">"""</span>
+<span class="pl-s">        获取最近一次的执行结果 (例如，最新生成的代码)。</span>
+<span class="pl-s">        如果不存在，则返回 None。</span>
+<span class="pl-s">        """</span>
+        <span class="pl-k">for</span> <span class="pl-s1">record</span> <span class="pl-c1">in</span> <span class="pl-en">reversed</span>(<span class="pl-s1">self</span>.<span class="pl-c1">records</span>):
+            <span class="pl-k">if</span> <span class="pl-s1">record</span>[<span class="pl-s">'type'</span>] <span class="pl-c1">==</span> <span class="pl-s">'execution'</span>:
+                <span class="pl-k">return</span> <span class="pl-s1">record</span>[<span class="pl-s">'content'</span>]
+        <span class="pl-k">return</span> <span class="pl-c1">None</span></pre></div>
+<p>这个 <code class="notranslate">Memory</code> 类的设计比较简洁，主体是这样的：</p>
+<ul>
+<li>使用一个列表 <code class="notranslate">records</code> 来按顺序存储每一次的行动和反思。</li>
+<li><code class="notranslate">add_record</code> 方法负责向记忆中添加新的条目。</li>
+<li><code class="notranslate">get_trajectory</code> 方法是核心，它将记忆轨迹“序列化”成一段文本，可以直接插入到后续的提示词中，为模型的反思和优化提供完整的上下文。</li>
+<li><code class="notranslate">get_last_execution</code> 方便我们获取最新的“初稿”以供反思。</li>
+</ul>
+<h2>3 Reflection 智能体的编码实现</h2>
+<p>有了 <code class="notranslate">Memory</code> 模块作为基础，我们现在可以着手构建 <code class="notranslate">ReflectionAgent</code> 的核心逻辑。整个智能体的工作流程将围绕我们之前讨论的“执行-反思-优化”循环展开，并通过精心设计的提示词来引导大语言模型扮演不同的角色。</p>
+<p>（1）提示词设计</p>
+<p>与之前的范式不同，Reflection 机制需要多个不同角色的提示词来协同工作。</p>
+<ol>
+<li><strong>初始执行提示词 (Execution Prompt)</strong> ：这是智能体首次尝试解决问题的提示词，内容相对直接，只要求模型完成指定任务。</li>
+</ol>
+<div class="highlight highlight-source-shell"><pre class="notranslate">INITIAL_PROMPT_TEMPLATE = <span class="pl-s"><span class="pl-pds">"</span><span class="pl-pds">"</span><span class="pl-pds">"</span></span>
+<span class="pl-s">你是一位资深的Python程序员。请根据以下要求，编写一个Python函数。</span>
+<span class="pl-s">你的代码必须包含完整的函数签名、文档字符串，并遵循PEP 8编码规范。</span>
+<span class="pl-s"></span>
+<span class="pl-s">要求: {task}</span>
+<span class="pl-s"></span>
+<span class="pl-s">请直接输出代码，不要包含任何额外的解释。</span>
+<span class="pl-s"><span class="pl-pds">"</span><span class="pl-pds">"</span><span class="pl-pds">"</span></span></pre></div>
+<ol start="2">
+<li><strong>反思提示词 (Reflection Prompt)</strong> ：这个提示词是 Reflection 机制的灵魂。它指示模型扮演“代码评审员”的角色，对上一轮生成的代码进行批判性分析，并提供具体的、可操作的反馈。</li>
+</ol>
+<div class="highlight highlight-source-shell"><pre class="notranslate">REFLECT_PROMPT_TEMPLATE = <span class="pl-s"><span class="pl-pds">"</span><span class="pl-pds">"</span><span class="pl-pds">"</span></span>
+<span class="pl-s">你是一位极其严格的代码评审专家和资深算法工程师，对代码的性能有极致的要求。</span>
+<span class="pl-s">你的任务是审查以下Python代码，并专注于找出其在&lt;strong&gt;算法效率&lt;/strong&gt;上的主要瓶颈。</span>
+<span class="pl-s"></span>
+<span class="pl-s"># 原始任务:</span>
+<span class="pl-s">{task}</span>
+<span class="pl-s"></span>
+<span class="pl-s"># 待审查的代码:</span>
+<span class="pl-s"><span class="pl-s"><span class="pl-pds">`</span><span class="pl-pds">`</span><span class="pl-pds">`</span>python</span></span>
+<span class="pl-s"><span class="pl-s">{code}</span></span>
+<span class="pl-s"><span class="pl-s"><span class="pl-pds">`</span><span class="pl-pds">`</span><span class="pl-pds">`</span></span></span>
+<span class="pl-s"></span>
+<span class="pl-s">请分析该代码的时间复杂度，并思考是否存在一种&lt;strong&gt;算法上更优&lt;/strong&gt;的解决方案来显著提升性能。</span>
+<span class="pl-s">如果存在，请清晰地指出当前算法的不足，并提出具体的、可行的改进算法建议（例如，使用筛法替代试除法）。</span>
+<span class="pl-s">如果代码在算法层面已经达到最优，才能回答“无需改进”。</span>
+<span class="pl-s"></span>
+<span class="pl-s">请直接输出你的反馈，不要包含任何额外的解释。</span>
+<span class="pl-s"><span class="pl-pds">"</span><span class="pl-pds">"</span><span class="pl-pds">"</span></span></pre></div>
+<ol start="3">
+<li><strong>优化提示词 (Refinement Prompt)</strong> ：当收到反馈后，这个提示词将引导模型根据反馈内容，对原有代码进行修正和优化。</li>
+</ol>
+<div class="highlight highlight-source-shell"><pre class="notranslate">REFINE_PROMPT_TEMPLATE = <span class="pl-s"><span class="pl-pds">"</span><span class="pl-pds">"</span><span class="pl-pds">"</span></span>
+<span class="pl-s">你是一位资深的Python程序员。你正在根据一位代码评审专家的反馈来优化你的代码。</span>
+<span class="pl-s"></span>
+<span class="pl-s"># 原始任务:</span>
+<span class="pl-s">{task}</span>
+<span class="pl-s"></span>
+<span class="pl-s"># 你上一轮尝试的代码:</span>
+<span class="pl-s">{last_code_attempt}</span>
+<span class="pl-s">评审员的反馈：</span>
+<span class="pl-s">{feedback}</span>
+<span class="pl-s"></span>
+<span class="pl-s">请根据评审员的反馈，生成一个优化后的新版本代码。</span>
+<span class="pl-s">你的代码必须包含完整的函数签名、文档字符串，并遵循PEP 8编码规范。</span>
+<span class="pl-s">请直接输出优化后的代码，不要包含任何额外的解释。</span>
+<span class="pl-s"><span class="pl-pds">"</span><span class="pl-pds">"</span><span class="pl-pds">"</span></span></pre></div>
+<p>（2）智能体封装与实现</p>
+<p>现在，我们将这套提示词逻辑和 <code class="notranslate">Memory</code> 模块整合到 <code class="notranslate">ReflectionAgent</code> 类中。</p>
+<div class="highlight highlight-source-python"><pre class="notranslate"><span class="pl-c"># 假设 llm_client.py 和 memory.py 已定义</span>
+<span class="pl-c"># from llm_client import HelloAgentsLLM</span>
+<span class="pl-c"># from memory import Memory</span>
+
+<span class="pl-k">class</span> <span class="pl-v">ReflectionAgent</span>:
+    <span class="pl-k">def</span> <span class="pl-en">__init__</span>(<span class="pl-s1">self</span>, <span class="pl-s1">llm_client</span>, <span class="pl-s1">max_iterations</span><span class="pl-c1">=</span><span class="pl-c1">3</span>):
+        <span class="pl-s1">self</span>.<span class="pl-c1">llm_client</span> <span class="pl-c1">=</span> <span class="pl-s1">llm_client</span>
+        <span class="pl-s1">self</span>.<span class="pl-c1">memory</span> <span class="pl-c1">=</span> <span class="pl-en">Memory</span>()
+        <span class="pl-s1">self</span>.<span class="pl-c1">max_iterations</span> <span class="pl-c1">=</span> <span class="pl-s1">max_iterations</span>
+
+    <span class="pl-k">def</span> <span class="pl-en">run</span>(<span class="pl-s1">self</span>, <span class="pl-s1">task</span>: <span class="pl-smi">str</span>):
+        <span class="pl-en">print</span>(<span class="pl-s">f"<span class="pl-cce">\n</span>--- 开始处理任务 ---<span class="pl-cce">\n</span>任务: <span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">task</span><span class="pl-kos">}</span></span>"</span>)
+
+        <span class="pl-c"># --- 1. 初始执行 ---</span>
+        <span class="pl-en">print</span>(<span class="pl-s">"<span class="pl-cce">\n</span>--- 正在进行初始尝试 ---"</span>)
+        <span class="pl-s1">initial_prompt</span> <span class="pl-c1">=</span> <span class="pl-c1">INITIAL_PROMPT_TEMPLATE</span>.<span class="pl-c1">format</span>(<span class="pl-s1">task</span><span class="pl-c1">=</span><span class="pl-s1">task</span>)
+        <span class="pl-s1">initial_code</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">_get_llm_response</span>(<span class="pl-s1">initial_prompt</span>)
+        <span class="pl-s1">self</span>.<span class="pl-c1">memory</span>.<span class="pl-c1">add_record</span>(<span class="pl-s">"execution"</span>, <span class="pl-s1">initial_code</span>)
+
+        <span class="pl-c"># --- 2. 迭代循环:反思与优化 ---</span>
+        <span class="pl-k">for</span> <span class="pl-s1">i</span> <span class="pl-c1">in</span> <span class="pl-en">range</span>(<span class="pl-s1">self</span>.<span class="pl-c1">max_iterations</span>):
+            <span class="pl-en">print</span>(<span class="pl-s">f"<span class="pl-cce">\n</span>--- 第 <span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">i</span><span class="pl-c1">+</span><span class="pl-c1">1</span><span class="pl-kos">}</span></span>/<span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">self</span>.<span class="pl-c1">max_iterations</span><span class="pl-kos">}</span></span> 轮迭代 ---"</span>)
+
+            <span class="pl-c"># a. 反思</span>
+            <span class="pl-en">print</span>(<span class="pl-s">"<span class="pl-cce">\n</span>-&gt; 正在进行反思..."</span>)
+            <span class="pl-s1">last_code</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">memory</span>.<span class="pl-c1">get_last_execution</span>()
+            <span class="pl-s1">reflect_prompt</span> <span class="pl-c1">=</span> <span class="pl-c1">REFLECT_PROMPT_TEMPLATE</span>.<span class="pl-c1">format</span>(<span class="pl-s1">task</span><span class="pl-c1">=</span><span class="pl-s1">task</span>, <span class="pl-s1">code</span><span class="pl-c1">=</span><span class="pl-s1">last_code</span>)
+            <span class="pl-s1">feedback</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">_get_llm_response</span>(<span class="pl-s1">reflect_prompt</span>)
+            <span class="pl-s1">self</span>.<span class="pl-c1">memory</span>.<span class="pl-c1">add_record</span>(<span class="pl-s">"reflection"</span>, <span class="pl-s1">feedback</span>)
+
+            <span class="pl-c"># b. 检查是否需要停止</span>
+            <span class="pl-k">if</span> <span class="pl-s">"无需改进"</span> <span class="pl-c1">in</span> <span class="pl-s1">feedback</span>:
+                <span class="pl-en">print</span>(<span class="pl-s">"<span class="pl-cce">\n</span>✅ 反思认为代码已无需改进，任务完成。"</span>)
+                <span class="pl-k">break</span>
+
+            <span class="pl-c"># c. 优化</span>
+            <span class="pl-en">print</span>(<span class="pl-s">"<span class="pl-cce">\n</span>-&gt; 正在进行优化..."</span>)
+            <span class="pl-s1">refine_prompt</span> <span class="pl-c1">=</span> <span class="pl-c1">REFINE_PROMPT_TEMPLATE</span>.<span class="pl-c1">format</span>(
+                <span class="pl-s1">task</span><span class="pl-c1">=</span><span class="pl-s1">task</span>,
+                <span class="pl-s1">last_code_attempt</span><span class="pl-c1">=</span><span class="pl-s1">last_code</span>,
+                <span class="pl-s1">feedback</span><span class="pl-c1">=</span><span class="pl-s1">feedback</span>
+            )
+            <span class="pl-s1">refined_code</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">_get_llm_response</span>(<span class="pl-s1">refine_prompt</span>)
+            <span class="pl-s1">self</span>.<span class="pl-c1">memory</span>.<span class="pl-c1">add_record</span>(<span class="pl-s">"execution"</span>, <span class="pl-s1">refined_code</span>)
+        
+        <span class="pl-s1">final_code</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">memory</span>.<span class="pl-c1">get_last_execution</span>()
+        <span class="pl-en">print</span>(<span class="pl-s">f"<span class="pl-cce">\n</span>--- 任务完成 ---<span class="pl-cce">\n</span>最终生成的代码:<span class="pl-cce">\n</span>```python<span class="pl-cce">\n</span><span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">final_code</span><span class="pl-kos">}</span></span><span class="pl-cce">\n</span>```"</span>)
+        <span class="pl-k">return</span> <span class="pl-s1">final_code</span>
+
+    <span class="pl-k">def</span> <span class="pl-en">_get_llm_response</span>(<span class="pl-s1">self</span>, <span class="pl-s1">prompt</span>: <span class="pl-smi">str</span>) <span class="pl-c1">-&gt;</span> <span class="pl-smi">str</span>:
+        <span class="pl-s">"""一个辅助方法，用于调用LLM并获取完整的流式响应。"""</span>
+        <span class="pl-s1">messages</span> <span class="pl-c1">=</span> [{<span class="pl-s">"role"</span>: <span class="pl-s">"user"</span>, <span class="pl-s">"content"</span>: <span class="pl-s1">prompt</span>}]
+        <span class="pl-s1">response_text</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">llm_client</span>.<span class="pl-c1">think</span>(<span class="pl-s1">messages</span><span class="pl-c1">=</span><span class="pl-s1">messages</span>) <span class="pl-c1">or</span> <span class="pl-s">""</span>
+        <span class="pl-k">return</span> <span class="pl-s1">response_text</span></pre></div>
+<h2>4 运行实例与分析</h2>
+<div class="highlight highlight-source-python"><pre class="notranslate"><span class="pl-c1">-</span><span class="pl-c1">-</span><span class="pl-c1">-</span> <span class="pl-s1">开始处理任务</span> <span class="pl-c1">-</span><span class="pl-c1">-</span><span class="pl-c1">-</span>
+<span class="pl-s1">任务</span>： <span class="pl-s1">编写一个Python函数</span>，<span class="pl-en">找出1到n之间所有的素数</span> (<span class="pl-s1">prime</span> <span class="pl-s1">numbers</span>)。
+
+<span class="pl-c1">-</span><span class="pl-c1">-</span><span class="pl-c1">-</span> <span class="pl-s1">正在进行初始尝试</span> <span class="pl-c1">-</span><span class="pl-c1">-</span><span class="pl-c1">-</span>
+🧠 <span class="pl-s1">正在调用</span> <span class="pl-s1">xxxxxx</span> <span class="pl-s1">模型</span>...
+✅ <span class="pl-c1">大语言模型响应成功</span>：
+<span class="pl-s">``</span>`<span class="pl-s1">python</span>
+<span class="pl-k">def</span> <span class="pl-en">find_primes</span>(<span class="pl-s1">n</span>):
+    ...
+    <span class="pl-k">return</span> <span class="pl-s1">primes</span>
+<span class="pl-s">``</span>`
+📝 <span class="pl-s1">记忆已更新</span>，<span class="pl-s1">新增一条</span> <span class="pl-s">'execution'</span> <span class="pl-s1">记录</span>。   
+
+<span class="pl-c1">-</span><span class="pl-c1">-</span><span class="pl-c1">-</span> <span class="pl-s1">第</span> <span class="pl-c1">1</span><span class="pl-c1">/</span><span class="pl-c1">2</span> <span class="pl-s1">轮迭代</span> <span class="pl-c1">-</span><span class="pl-c1">-</span><span class="pl-c1">-</span>
+
+<span class="pl-c1">-</span><span class="pl-c1">&gt;</span> <span class="pl-s1">正在进行反思</span>...
+🧠 <span class="pl-c1">正在调用</span> <span class="pl-s1">xxxxxx</span> <span class="pl-s1">模型</span>...
+✅ <span class="pl-c1">大语言模型响应成功</span>：
+<span class="pl-en">当前代码的时间复杂度为O</span>(<span class="pl-s1">n</span> <span class="pl-c1">*</span> <span class="pl-en">sqrt</span>(<span class="pl-s1">n</span>))。<span class="pl-s1">虽然对于较小的n值</span>，<span class="pl-s1">这种实现是可以接受的</span>，<span class="pl-s1">但当n非常大时</span>，<span class="pl-s1">性能会显著下降</span>。<span class="pl-s1">主要瓶颈在于每个数都需要进行试除法检查</span>，<span class="pl-s1">这导致了较高的时间开销</span>。
+
+<span class="pl-s1">建议使用埃拉托斯特尼筛法</span>（<span class="pl-v">Sieve</span> <span class="pl-s1">of</span> <span class="pl-v">Eratosthenes</span>），<span class="pl-en">该算法的时间复杂度为O</span>(<span class="pl-s1">n</span> <span class="pl-en">log</span>(<span class="pl-s1">log</span> <span class="pl-s1">n</span>))，<span class="pl-s1">能够显著提高查找素数的效率</span>。
+
+<span class="pl-s1">改进后的代码如下</span>：
+<span class="pl-s">``</span>`<span class="pl-s1">python</span>
+<span class="pl-k">def</span> <span class="pl-en">find_primes</span>(<span class="pl-s1">n</span>):
+    ...
+    <span class="pl-k">return</span> <span class="pl-s1">primes</span>
+<span class="pl-s">``</span>`
+📝 <span class="pl-s1">记忆已更新</span>，<span class="pl-s1">新增一条</span> <span class="pl-s">'reflection'</span> <span class="pl-s1">记录</span>。
+
+<span class="pl-c1">-&gt;</span> <span class="pl-s1">正在进行优化</span>...
+🧠 <span class="pl-c1">正在调用</span> <span class="pl-s1">xxxxxx</span> <span class="pl-s1">模型</span>...
+✅ <span class="pl-c1">大语言模型响应成功</span>：
+<span class="pl-s">``</span>`<span class="pl-s1">python</span>
+<span class="pl-k">def</span> <span class="pl-en">find_primes</span>(<span class="pl-s1">n</span>):
+    ...
+    <span class="pl-k">return</span> <span class="pl-s1">primes</span>
+<span class="pl-s">``</span>`
+📝 <span class="pl-s1">记忆已更新</span>，<span class="pl-s1">新增一条</span> <span class="pl-s">'execution'</span> <span class="pl-s1">记录</span>。
+
+<span class="pl-c1">-</span><span class="pl-c1">-</span><span class="pl-c1">-</span> <span class="pl-s1">第</span> <span class="pl-c1">2</span><span class="pl-c1">/</span><span class="pl-c1">2</span> <span class="pl-s1">轮迭代</span> <span class="pl-c1">-</span><span class="pl-c1">-</span><span class="pl-c1">-</span>
+
+<span class="pl-c1">-</span><span class="pl-c1">&gt;</span> <span class="pl-s1">正在进行反思</span>...
+🧠 <span class="pl-c1">正在调用</span> <span class="pl-s1">xxxxxx</span> <span class="pl-s1">模型</span>...
+✅ <span class="pl-c1">大语言模型响应成功</span>：
+<span class="pl-s1">当前代码使用了Eratosthenes筛法</span>，<span class="pl-en">时间复杂度为O</span>(<span class="pl-s1">n</span> <span class="pl-s1">log</span> <span class="pl-s1">log</span> <span class="pl-s1">n</span>)，<span class="pl-en">空间复杂度为O</span>(<span class="pl-s1">n</span>)。<span class="pl-s1">此算法在寻找1到n之间的所有素数时已经非常高效</span>，<span class="pl-s1">通常情况下无需进一步优化</span>。<span class="pl-s1">但在某些特定场景下</span>，<span class="pl-s1">可以考虑以下改进</span>：
+
+<span class="pl-c1">1.</span> <span class="pl-c1">&lt;</span><span class="pl-s1">strong</span><span class="pl-c1">&gt;</span><span class="pl-s1">分段筛法</span>（<span class="pl-v">Segmented</span> <span class="pl-v">Sieve</span>）<span class="pl-c1">&lt;</span><span class="pl-c1">/</span><span class="pl-s1">strong</span><span class="pl-c1">&gt;</span>：<span class="pl-s1">适用于n非常大但内存有限的情况</span>。<span class="pl-s1">将区间分成多个小段</span>，<span class="pl-s1">每段分别用筛法处理</span>，<span class="pl-s1">减少内存使用</span>。
+<span class="pl-c1">2.</span> <span class="pl-c1">&lt;</span><span class="pl-s1">strong</span><span class="pl-c1">&gt;</span><span class="pl-s1">奇数筛法</span>（<span class="pl-v">Odd</span> <span class="pl-v">Number</span> <span class="pl-v">Sieve</span>）<span class="pl-c1">&lt;</span><span class="pl-c1">/</span><span class="pl-s1">strong</span><span class="pl-c1">&gt;</span>：<span class="pl-s1">除了2以外</span>，<span class="pl-s1">所有素数都是奇数</span>。<span class="pl-s1">可以在初始化</span><span class="pl-s">`is_prime`</span><span class="pl-s1">数组时只标记奇数</span>，<span class="pl-s1">这样可以将空间复杂度降低一半</span>，<span class="pl-s1">同时减少一些不必要的计算</span>。
+
+<span class="pl-s1">然而</span>，<span class="pl-s1">这些改进对于大多数应用场景来说并不是必需的</span>，<span class="pl-s1">因为标准的Eratosthenes筛法已经足够高效</span>。<span class="pl-s1">因此</span>，<span class="pl-s1">在一般情况下</span>，<span class="pl-c1">&lt;</span><span class="pl-s1">strong</span><span class="pl-c1">&gt;</span><span class="pl-s1">无需改进</span><span class="pl-c1">&lt;</span><span class="pl-c1">/</span><span class="pl-s1">strong</span><span class="pl-c1">&gt;</span>。
+📝 <span class="pl-s1">记忆已更新</span>，<span class="pl-s1">新增一条</span> <span class="pl-s">'reflection'</span> <span class="pl-s1">记录</span>。
+
+✅ <span class="pl-s1">反思认为代码已无需改进</span>，<span class="pl-s1">任务完成</span>。
+
+<span class="pl-c1">-</span><span class="pl-c1">-</span><span class="pl-c1">-</span> <span class="pl-s1">任务完成</span> <span class="pl-c1">-</span><span class="pl-c1">-</span><span class="pl-c1">-</span>
+<span class="pl-s1">最终生成的代码</span>：
+<span class="pl-s">``</span>`<span class="pl-s1">python</span>
+<span class="pl-k">def</span> <span class="pl-en">find_primes</span>(<span class="pl-s1">n</span>):
+    <span class="pl-s">"""</span>
+<span class="pl-s">    Finds all prime numbers between 1 and n using the Sieve of Eratosthenes algorithm.</span>
+<span class="pl-s"></span>
+<span class="pl-s">    :param n: The upper limit of the range to find prime numbers.</span>
+<span class="pl-s">    :return: A list of all prime numbers between 1 and n.</span>
+<span class="pl-s">    """</span>
+    <span class="pl-k">if</span> <span class="pl-s1">n</span> <span class="pl-c1">&lt;</span> <span class="pl-c1">2</span>:
+        <span class="pl-k">return</span> []
+
+    <span class="pl-s1">is_prime</span> <span class="pl-c1">=</span> [<span class="pl-c1">True</span>] <span class="pl-c1">*</span> (<span class="pl-s1">n</span> <span class="pl-c1">+</span> <span class="pl-c1">1</span>)
+    <span class="pl-s1">is_prime</span>[<span class="pl-c1">0</span>] <span class="pl-c1">=</span> <span class="pl-s1">is_prime</span>[<span class="pl-c1">1</span>] <span class="pl-c1">=</span> <span class="pl-c1">False</span>
+
+    <span class="pl-s1">p</span> <span class="pl-c1">=</span> <span class="pl-c1">2</span>
+    <span class="pl-k">while</span> <span class="pl-s1">p</span> <span class="pl-c1">*</span> <span class="pl-s1">p</span> <span class="pl-c1">&lt;=</span> <span class="pl-s1">n</span>:
+        <span class="pl-k">if</span> <span class="pl-s1">is_prime</span>[<span class="pl-s1">p</span>]:
+            <span class="pl-k">for</span> <span class="pl-s1">i</span> <span class="pl-c1">in</span> <span class="pl-en">range</span>(<span class="pl-s1">p</span> <span class="pl-c1">*</span> <span class="pl-s1">p</span>, <span class="pl-s1">n</span> <span class="pl-c1">+</span> <span class="pl-c1">1</span>, <span class="pl-s1">p</span>):
+                <span class="pl-s1">is_prime</span>[<span class="pl-s1">i</span>] <span class="pl-c1">=</span> <span class="pl-c1">False</span>
+        <span class="pl-s1">p</span> <span class="pl-c1">+=</span> <span class="pl-c1">1</span>
+
+    <span class="pl-s1">primes</span> <span class="pl-c1">=</span> [<span class="pl-s1">num</span> <span class="pl-k">for</span> <span class="pl-s1">num</span> <span class="pl-c1">in</span> <span class="pl-en">range</span>(<span class="pl-c1">2</span>, <span class="pl-s1">n</span> <span class="pl-c1">+</span> <span class="pl-c1">1</span>) <span class="pl-k">if</span> <span class="pl-s1">is_prime</span>[<span class="pl-s1">num</span>]]
+    <span class="pl-k">return</span> <span class="pl-s1">primes</span>
+<span class="pl-s">``</span>`</pre></div>
+<p>这个运行实例展示了 Reflection 机制是如何驱动智能体进行深度优化的:</p>
+<ol>
+<li><strong>有效的“批判”是优化的前提</strong>:在第一轮反思中，由于我们使用了“极其严格”且“专注于算法效率”的提示词，智能体没有满足于功能正确的初版代码，而是精准地指出了其 <code class="notranslate">O(n * sqrt(n))</code> 的时间复杂度瓶颈，并提出了算法层面的改进建议——埃拉托斯特尼筛法。</li>
+<li><strong>迭代式改进</strong>: 智能体在接收到明确的反馈后，于优化阶段成功地实现了更高效的筛法，将算法复杂度降至 <code class="notranslate">O(n log log n)</code>，完成了第一次有意义的自我迭代。</li>
+<li><strong>收敛与终止</strong>: 在第二轮反思中，智能体面对已经高效的筛法，展现出了更深层次的知识。它不仅肯定了当前算法的效率，甚至还提及了分段筛法等更高级的优化方向，但最终做出了“在一般情况下无需改进”的正确判断。这个判断触发了我们的终止条件，使优化过程得以收敛。</li>
+</ol>
+<p>这个案例充分证明，一个设计良好的 Reflection 机制，其价值不仅在于修复错误，更在于<strong>驱动解决方案在质量和效率上实现阶梯式的提升</strong>，这使其成为构建复杂、高质量智能体的关键技术之一。</p>
+<h2>5 Reflection 机制的成本收益分析</h2>
+<p>尽管 Reflection 机制在提升任务解决质量上表现出色，但这种能力的获得并非没有代价。在实际应用中，我们需要权衡其带来的收益与相应的成本。</p>
+<p>（1）主要成本</p>
+<ol>
+<li>
+<p><strong>模型调用开销增加</strong>:这是最直接的成本。每进行一轮迭代，至少需要额外调用两次大语言模型（一次用于反思，一次用于优化）。如果迭代多轮，API 调用成本和计算资源消耗将成倍增加。</p>
+</li>
+<li>
+<p><strong>任务延迟显著提高</strong>:Reflection 是一个串行过程，每一轮的优化都必须等待上一轮的反思完成。这使得任务的总耗时显著延长，不适合对实时性要求高的场景。</p>
+</li>
+<li>
+<p><strong>提示工程复杂度上升</strong>:如我们的案例所示，Reflection 的成功在很大程度上依赖于高质量、有针对性的提示词。为“执行”、“反思”、“优化”等不同阶段设计和调试有效的提示词，需要投入更多的开发精力。</p>
+</li>
+</ol>
+<p>（2）核心收益</p>
+<ol>
+<li>
+<p><strong>解决方案质量的跃迁</strong>:最大的收益在于，它能将一个“合格”的初始方案，迭代优化成一个“优秀”的最终方案。这种从功能正确到性能高效、从逻辑粗糙到逻辑严谨的提升，在很多关键任务中是至关重要的。</p>
+</li>
+<li>
+<p><strong>鲁棒性与可靠性增强</strong>:通过内部的自我纠错循环，智能体能够发现并修复初始方案中可能存在的逻辑漏洞、事实性错误或边界情况处理不当等问题，从而大大提高了最终结果的可靠性。</p>
+</li>
+</ol>
+<p>综上所述，Reflection 机制是一种典型的“以成本换质量”的策略。它非常适合那些<strong>对最终结果的质量、准确性和可靠性有极高要求，且对任务完成的实时性要求相对宽松</strong>的场景。例如:</p>
+<ul>
+<li>生成关键的业务代码或技术报告。</li>
+<li>在科学研究中进行复杂的逻辑推演。</li>
+<li>需要深度分析和规划的决策支持系统。</li>
+</ul>
+<p>反之，如果应用场景需要快速响应，或者一个“大致正确”的答案就已经足够，那么使用更轻量的 ReAct 或 Plan-and-Solve 范式可能会是更具性价比的选择。</p>
+<h2>6 完整代码</h2>
+<h3>memory文件</h3>
+<div class="highlight highlight-source-python"><pre class="notranslate"><span class="pl-c"># Reflection 的核心在于迭代，而迭代的前提是能够记住之前的尝试和获得的反馈。</span>
+<span class="pl-c"># 因此，一个“短期记忆”模块是实现该范式的必需品。这个记忆模块将负责存储每一次“执行-反思”循环的完整轨迹。</span>
+
+<span class="pl-k">from</span> <span class="pl-s1">typing</span> <span class="pl-k">import</span> <span class="pl-v">List</span>, <span class="pl-v">Dict</span>, <span class="pl-v">Any</span>, <span class="pl-v">Optional</span>
+
+
+<span class="pl-k">class</span> <span class="pl-v">Memory</span>:
+    <span class="pl-s">"""</span>
+<span class="pl-s">    一个简单的短期记忆模块，用于存储智能体的行动与反思轨迹。</span>
+<span class="pl-s">    """</span>
+
+    <span class="pl-k">def</span> <span class="pl-en">__init__</span>(<span class="pl-s1">self</span>):
+        <span class="pl-s">"""</span>
+<span class="pl-s">        初始化一个空列表来存储所有记录</span>
+<span class="pl-s">        """</span>
+        <span class="pl-s1">self</span>.<span class="pl-c1">records</span>: <span class="pl-v">List</span>[<span class="pl-v">Dict</span>[<span class="pl-smi">str</span>, <span class="pl-smi">Any</span>]] <span class="pl-c1">=</span> []
+
+    <span class="pl-k">def</span> <span class="pl-en">add_records</span>(<span class="pl-s1">self</span>, <span class="pl-s1">record_type</span>: <span class="pl-smi">str</span>, <span class="pl-s1">content</span>: <span class="pl-smi">str</span>):
+        <span class="pl-s">"""</span>
+<span class="pl-s">        向记忆中添加一条新记录。</span>
+<span class="pl-s"></span>
+<span class="pl-s">        参数:</span>
+<span class="pl-s">        - record_type (str): 记录的类型 ('execution' 或 'reflection')。</span>
+<span class="pl-s">        - content (str): 记录的具体内容 (例如，生成的代码或反思的反馈)。</span>
+<span class="pl-s">        """</span>
+        <span class="pl-s1">record</span> <span class="pl-c1">=</span> {<span class="pl-s">"type"</span>: <span class="pl-s1">record_type</span>, <span class="pl-s">"content"</span>: <span class="pl-s1">content</span>}
+        <span class="pl-s1">self</span>.<span class="pl-c1">records</span>.<span class="pl-c1">append</span>(<span class="pl-s1">record</span>)
+        <span class="pl-en">print</span>(<span class="pl-s">f"📝 记忆已更新，新增一条 '<span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">record_type</span><span class="pl-kos">}</span></span>' 记录。"</span>)
+
+    <span class="pl-k">def</span> <span class="pl-en">get_trajectory</span>(<span class="pl-s1">self</span>) <span class="pl-c1">-&gt;</span> <span class="pl-smi">str</span>:
+        <span class="pl-s">"""</span>
+<span class="pl-s">        将所有记忆记录格式化为一个连贯的字符串文本，用于构建提示词。</span>
+<span class="pl-s">        """</span>
+        <span class="pl-s1">tragectory_parts</span> <span class="pl-c1">=</span> []
+        <span class="pl-k">for</span> <span class="pl-s1">record</span> <span class="pl-c1">in</span> <span class="pl-s1">self</span>.<span class="pl-c1">records</span>:
+            <span class="pl-k">if</span> <span class="pl-s1">record</span>[<span class="pl-s">"type"</span>] <span class="pl-c1">==</span> <span class="pl-s">"execution"</span>:
+                <span class="pl-s1">tragectory_parts</span>.<span class="pl-c1">append</span>(
+                    <span class="pl-s">f" --- 上一轮尝试（代码）--- <span class="pl-cce">\n</span><span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">record</span>[<span class="pl-s">'content'</span>]<span class="pl-kos">}</span></span>"</span>
+                )
+            <span class="pl-k">elif</span> <span class="pl-s1">record</span>[<span class="pl-s">"type"</span>] <span class="pl-c1">==</span> <span class="pl-s">"reflection"</span>:
+                <span class="pl-s1">tragectory_parts</span>.<span class="pl-c1">append</span>(<span class="pl-s">f" --- 评审员反馈 ---<span class="pl-cce">\n</span><span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">record</span>[<span class="pl-s">'content'</span>]<span class="pl-kos">}</span></span>"</span>)
+        <span class="pl-k">return</span> <span class="pl-s">"<span class="pl-cce">\n</span><span class="pl-cce">\n</span>"</span>.<span class="pl-c1">join</span>(<span class="pl-s1">tragectory_parts</span>)
+
+    <span class="pl-k">def</span> <span class="pl-en">get_last_execution</span>(<span class="pl-s1">self</span>) <span class="pl-c1">-&gt;</span> <span class="pl-v">Optional</span>[<span class="pl-smi">str</span>]:
+        <span class="pl-s">"""</span>
+<span class="pl-s">        获取最近一次的执行结果 (例如，最新生成的代码)。</span>
+<span class="pl-s">        如果不存在，则返回 None。</span>
+<span class="pl-s">        """</span>
+        <span class="pl-k">for</span> <span class="pl-s1">record</span> <span class="pl-c1">in</span> <span class="pl-en">reversed</span>(<span class="pl-s1">self</span>.<span class="pl-c1">records</span>):
+            <span class="pl-k">if</span> <span class="pl-s1">record</span>[<span class="pl-s">"type"</span>] <span class="pl-c1">==</span> <span class="pl-s">"execution"</span>:
+                <span class="pl-k">return</span> <span class="pl-s1">record</span>[<span class="pl-s">"content"</span>]
+        <span class="pl-k">return</span> <span class="pl-c1">None</span></pre></div>
+<h3>智能体文件</h3>
+<div class="highlight highlight-source-python"><pre class="notranslate"><span class="pl-k">from</span> <span class="pl-s1">llm_client</span> <span class="pl-k">import</span> <span class="pl-v">HelloAgentsLLM</span>
+<span class="pl-k">from</span> <span class="pl-s1">memory</span> <span class="pl-k">import</span> <span class="pl-v">Memory</span>
+
+<span class="pl-c1">INITIAL_PROMPT_TEMPLATE</span> <span class="pl-c1">=</span> <span class="pl-s">"""</span>
+<span class="pl-s">你是一位资深的Python程序员。请根据以下要求，编写一个Python函数。</span>
+<span class="pl-s">你的代码必须包含完整的函数签名、文档字符串，并遵循PEP 8编码规范。</span>
+<span class="pl-s"></span>
+<span class="pl-s">要求: {task}</span>
+<span class="pl-s"></span>
+<span class="pl-s">请直接输出代码，不要包含任何额外的解释。</span>
+<span class="pl-s">"""</span>
+
+<span class="pl-c1">REFLECT_PROMPT_TEMPLATE</span> <span class="pl-c1">=</span> <span class="pl-s">"""</span>
+<span class="pl-s">你是一位极其严格的代码评审专家和资深算法工程师，对代码的性能有极致的要求。</span>
+<span class="pl-s">你的任务是审查以下Python代码，并专注于找出其在&lt;strong&gt;算法效率&lt;/strong&gt;上的主要瓶颈。</span>
+<span class="pl-s"></span>
+<span class="pl-s"># 原始任务:</span>
+<span class="pl-s">{task}</span>
+<span class="pl-s"></span>
+<span class="pl-s"># 待审查的代码:</span>
+<span class="pl-s">```python</span>
+<span class="pl-s">{code}</span>
+<span class="pl-s"></span>
+<span class="pl-s">请分析该代码的时间复杂度，并思考是否存在一种&lt;strong&gt;算法上更优&lt;/strong&gt;的解决方案来显著提升性能。</span>
+<span class="pl-s">如果存在，请清晰地指出当前算法的不足，并提出具体的、可行的改进算法建议（例如，使用筛法替代试除法）。</span>
+<span class="pl-s">如果代码在算法层面已经达到最优，才能回答“无需改进”。</span>
+<span class="pl-s"></span>
+<span class="pl-s">请直接输出你的反馈，不要包含任何额外的解释。</span>
+<span class="pl-s">"""</span>
+
+
+<span class="pl-c1">REFINE_PROMPT_TEMPLATE</span> <span class="pl-c1">=</span> <span class="pl-s">"""</span>
+<span class="pl-s">你是一位资深的Python程序员。你正在根据一位代码评审专家的反馈来优化你的代码。</span>
+<span class="pl-s"></span>
+<span class="pl-s"># 原始任务:</span>
+<span class="pl-s">{task}</span>
+<span class="pl-s"></span>
+<span class="pl-s"># 你上一轮尝试的代码:</span>
+<span class="pl-s">{last_code_attempt}</span>
+<span class="pl-s">评审员的反馈：</span>
+<span class="pl-s">{feedback}</span>
+<span class="pl-s"></span>
+<span class="pl-s">请根据评审员的反馈，生成一个优化后的新版本代码。</span>
+<span class="pl-s">你的代码必须包含完整的函数签名、文档字符串，并遵循PEP 8编码规范。</span>
+<span class="pl-s">请直接输出优化后的代码，不要包含任何额外的解释。</span>
+<span class="pl-s">"""</span>
+
+
+<span class="pl-k">class</span> <span class="pl-v">ReflectionAgent</span>:
+    <span class="pl-k">def</span> <span class="pl-en">__init__</span>(<span class="pl-s1">self</span>, <span class="pl-s1">llm_client</span>, <span class="pl-s1">max_iterations</span><span class="pl-c1">=</span><span class="pl-c1">3</span>):
+        <span class="pl-s1">self</span>.<span class="pl-c1">llm_client</span> <span class="pl-c1">=</span> <span class="pl-s1">llm_client</span>
+        <span class="pl-s1">self</span>.<span class="pl-c1">memory</span> <span class="pl-c1">=</span> <span class="pl-en">Memory</span>()
+        <span class="pl-s1">self</span>.<span class="pl-c1">max_iterations</span> <span class="pl-c1">=</span> <span class="pl-s1">max_iterations</span>
+
+    <span class="pl-k">def</span> <span class="pl-en">run</span>(<span class="pl-s1">self</span>, <span class="pl-s1">task</span>: <span class="pl-smi">str</span>):
+        <span class="pl-en">print</span>(<span class="pl-s">f"<span class="pl-cce">\n</span>--- 开始处理任务 ---<span class="pl-cce">\n</span>任务: <span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">task</span><span class="pl-kos">}</span></span>"</span>)
+
+        <span class="pl-c"># 1、执行阶段</span>
+        <span class="pl-en">print</span>(<span class="pl-s">"<span class="pl-cce">\n</span>--- 正在进行初始尝试 ---"</span>)
+        <span class="pl-s1">initial_prompt</span> <span class="pl-c1">=</span> <span class="pl-c1">INITIAL_PROMPT_TEMPLATE</span>.<span class="pl-c1">format</span>(<span class="pl-s1">task</span><span class="pl-c1">=</span><span class="pl-s1">task</span>)
+        <span class="pl-s1">initial_code</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">_get_llm_response</span>(<span class="pl-s1">initial_prompt</span>)
+        <span class="pl-s1">self</span>.<span class="pl-c1">memory</span>.<span class="pl-c1">add_records</span>(<span class="pl-s">"execution"</span>, <span class="pl-s1">initial_code</span>)
+
+        <span class="pl-c"># --- 2. 迭代循环:反思与优化 ---</span>
+        <span class="pl-k">for</span> <span class="pl-s1">i</span> <span class="pl-c1">in</span> <span class="pl-en">range</span>(<span class="pl-s1">self</span>.<span class="pl-c1">max_iterations</span>):
+            <span class="pl-en">print</span>(<span class="pl-s">f"<span class="pl-cce">\n</span>--- 第 <span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">i</span><span class="pl-c1">+</span><span class="pl-c1">1</span><span class="pl-kos">}</span></span>/<span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">self</span>.<span class="pl-c1">max_iterations</span><span class="pl-kos">}</span></span> 轮迭代 ---"</span>)
+
+            <span class="pl-c"># a.反思</span>
+            <span class="pl-en">print</span>(<span class="pl-s">"<span class="pl-cce">\n</span>-&gt; 正在进行反思..."</span>)
+            <span class="pl-s1">last_code</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">memory</span>.<span class="pl-c1">get_last_execution</span>()
+            <span class="pl-s1">reflect_pormpt</span> <span class="pl-c1">=</span> <span class="pl-c1">REFLECT_PROMPT_TEMPLATE</span>.<span class="pl-c1">format</span>(<span class="pl-s1">task</span><span class="pl-c1">=</span><span class="pl-s1">task</span>, <span class="pl-s1">code</span><span class="pl-c1">=</span><span class="pl-s1">last_code</span>)
+            <span class="pl-s1">feedback</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">_get_llm_response</span>(<span class="pl-s1">reflect_pormpt</span>)
+            <span class="pl-s1">self</span>.<span class="pl-c1">memory</span>.<span class="pl-c1">add_records</span>(<span class="pl-s">"reflection"</span>, <span class="pl-s1">feedback</span>)
+
+            <span class="pl-c"># b.检查是否需要停止</span>
+            <span class="pl-k">if</span> <span class="pl-s">"无需改进"</span> <span class="pl-c1">in</span> <span class="pl-s1">feedback</span>:
+                <span class="pl-en">print</span>(<span class="pl-s">"<span class="pl-cce">\n</span>✅ 反思认为代码已无需改进，任务完成。"</span>)
+                <span class="pl-k">break</span>
+
+            <span class="pl-c"># c. 优化</span>
+            <span class="pl-en">print</span>(<span class="pl-s">"<span class="pl-cce">\n</span>-&gt; 正在进行优化..."</span>)
+            <span class="pl-s1">refine_prompt</span> <span class="pl-c1">=</span> <span class="pl-c1">REFINE_PROMPT_TEMPLATE</span>.<span class="pl-c1">format</span>(
+                <span class="pl-s1">task</span><span class="pl-c1">=</span><span class="pl-s1">task</span>, <span class="pl-s1">last_code_attempt</span><span class="pl-c1">=</span><span class="pl-s1">last_code</span>, <span class="pl-s1">feedback</span><span class="pl-c1">=</span><span class="pl-s1">feedback</span>
+            )
+            <span class="pl-s1">refine_code</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">_get_llm_response</span>(<span class="pl-s1">refine_prompt</span>)
+            <span class="pl-s1">self</span>.<span class="pl-c1">memory</span>.<span class="pl-c1">add_records</span>(<span class="pl-s">"execution"</span>, <span class="pl-s1">refine_code</span>)
+
+        <span class="pl-s1">final_code</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">_get_llm_response</span>(<span class="pl-s1">refine_prompt</span>)
+        <span class="pl-en">print</span>(<span class="pl-s">f"<span class="pl-cce">\n</span>--- 任务完成 ---<span class="pl-cce">\n</span>最终生成的代码:<span class="pl-cce">\n</span>```python<span class="pl-cce">\n</span><span class="pl-s1"><span class="pl-kos">{</span><span class="pl-s1">final_code</span><span class="pl-kos">}</span></span><span class="pl-cce">\n</span>```"</span>)
+        <span class="pl-k">return</span> <span class="pl-s1">final_code</span>
+
+    <span class="pl-k">def</span> <span class="pl-en">_get_llm_response</span>(<span class="pl-s1">self</span>, <span class="pl-s1">prompt</span>: <span class="pl-smi">str</span>) <span class="pl-c1">-&gt;</span> <span class="pl-smi">str</span>:
+        <span class="pl-s">"""一个辅助方法，用于调用LLM并获取完整的流式响应。"""</span>
+        <span class="pl-s1">messages</span> <span class="pl-c1">=</span> [{<span class="pl-s">"role"</span>: <span class="pl-s">"user"</span>, <span class="pl-s">"content"</span>: <span class="pl-s1">prompt</span>}]
+        <span class="pl-s1">response_text</span> <span class="pl-c1">=</span> <span class="pl-s1">self</span>.<span class="pl-c1">llm_client</span>.<span class="pl-c1">think</span>(<span class="pl-s1">messages</span><span class="pl-c1">=</span><span class="pl-s1">messages</span>) <span class="pl-c1">or</span> <span class="pl-s">""</span>
+        <span class="pl-k">return</span> <span class="pl-s1">response_text</span>
+
+
+<span class="pl-c"># --- 5. 主函数入口 ---</span>
+<span class="pl-k">if</span> <span class="pl-s1">__name__</span> <span class="pl-c1">==</span> <span class="pl-s">"__main__"</span>:
+    <span class="pl-k">try</span>:
+        <span class="pl-s1">llm_client</span> <span class="pl-c1">=</span> <span class="pl-en">HelloAgentsLLM</span>()
+        <span class="pl-s1">agent</span> <span class="pl-c1">=</span> <span class="pl-en">ReflectionAgent</span>(<span class="pl-s1">llm_client</span>)
+        <span class="pl-s1">question</span> <span class="pl-c1">=</span> <span class="pl-s">"编写一个Python函数，找出1到n之间所有的素数 (prime numbers)。"</span>
+        <span class="pl-s1">agent</span>.<span class="pl-c1">run</span>(<span class="pl-s1">question</span>)
+    <span class="pl-k">except</span> <span class="pl-v">ValueError</span> <span class="pl-k">as</span> <span class="pl-s1">e</span>:
+        <span class="pl-en">print</span>(<span class="pl-s1">e</span>)</pre></div></div>
+<div style="font-size:small;margin-top:8px;float:right;">感谢你的访问，欢迎交流。</div>
+
+<button class="btn btn-block" type="button" onclick="openComments()" id="cmButton">评论</button>
+<div class="comments" id="comments"></div>
+
+</div>
+    <div id="footer"><div id="footer1">Copyright © <span id="copyrightYear"></span> <a href="https://JustHeart31.github.io">JH Blog</a></div>
+<div id="footer2">
+    <span id="runday"></span><span>Powered by <a href="https://meekdai.com/Gmeek.html" target="_blank">Gmeek</a></span>
+</div>
+
+<script>
+var now=new Date();
+document.getElementById("copyrightYear").innerHTML=now.getFullYear();
+
+if(""!=""){
+    var startSite=new Date("");
+    var diff=now.getTime()-startSite.getTime();
+    var diffDay=Math.floor(diff/(1000*60*60*24));
+    document.getElementById("runday").innerHTML="网站运行 "+diffDay+" 天"+" • ";
+}
+</script></div>
+</body>
+<script>
+var IconList={'sun': 'M8 10.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM8 12a4 4 0 100-8 4 4 0 000 8zM8 0a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0V.75A.75.75 0 018 0zm0 13a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 018 13zM2.343 2.343a.75.75 0 011.061 0l1.06 1.061a.75.75 0 01-1.06 1.06l-1.06-1.06a.75.75 0 010-1.06zm9.193 9.193a.75.75 0 011.06 0l1.061 1.06a.75.75 0 01-1.06 1.061l-1.061-1.06a.75.75 0 010-1.061zM16 8a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0116 8zM3 8a.75.75 0 01-.75.75H.75a.75.75 0 010-1.5h1.5A.75.75 0 013 8zm10.657-5.657a.75.75 0 010 1.061l-1.061 1.06a.75.75 0 11-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zm-9.193 9.193a.75.75 0 010 1.06l-1.06 1.061a.75.75 0 11-1.061-1.06l1.06-1.061a.75.75 0 011.061 0z', 'moon': 'M9.598 1.591a.75.75 0 01.785-.175 7 7 0 11-8.967 8.967.75.75 0 01.961-.96 5.5 5.5 0 007.046-7.046.75.75 0 01.175-.786zm1.616 1.945a7 7 0 01-7.678 7.678 5.5 5.5 0 107.678-7.678z', 'sync': 'M1.705 8.005a.75.75 0 0 1 .834.656 5.5 5.5 0 0 0 9.592 2.97l-1.204-1.204a.25.25 0 0 1 .177-.427h3.646a.25.25 0 0 1 .25.25v3.646a.25.25 0 0 1-.427.177l-1.38-1.38A7.002 7.002 0 0 1 1.05 8.84a.75.75 0 0 1 .656-.834ZM8 2.5a5.487 5.487 0 0 0-4.131 1.869l1.204 1.204A.25.25 0 0 1 4.896 6H1.25A.25.25 0 0 1 1 5.75V2.104a.25.25 0 0 1 .427-.177l1.38 1.38A7.002 7.002 0 0 1 14.95 7.16a.75.75 0 0 1-1.49.178A5.5 5.5 0 0 0 8 2.5Z', 'home': 'M6.906.664a1.749 1.749 0 0 1 2.187 0l5.25 4.2c.415.332.657.835.657 1.367v7.019A1.75 1.75 0 0 1 13.25 15h-3.5a.75.75 0 0 1-.75-.75V9H7v5.25a.75.75 0 0 1-.75.75h-3.5A1.75 1.75 0 0 1 1 13.25V6.23c0-.531.242-1.034.657-1.366l5.25-4.2Zm1.25 1.171a.25.25 0 0 0-.312 0l-5.25 4.2a.25.25 0 0 0-.094.196v7.019c0 .138.112.25.25.25H5.5V8.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 .75.75v5.25h2.75a.25.25 0 0 0 .25-.25V6.23a.25.25 0 0 0-.094-.195Z', 'github': 'M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z', 'copy': 'M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z', 'check': 'M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z'};
+var utterancesLoad=0;
+
+let themeSettings={
+    "dark": ["dark","moon","#00f0ff","dark-blue"],
+    "light": ["light","sun","#ff5000","github-light"],
+    "auto": ["auto","sync","","preferred-color-scheme"]
+};
+function changeTheme(mode, icon, color, utheme){
+    document.documentElement.setAttribute("data-color-mode",mode);
+    document.getElementById("themeSwitch").setAttribute("d",value=IconList[icon]);
+    document.getElementById("themeSwitch").parentNode.style.color=color;
+    if(utterancesLoad==1){utterancesTheme(utheme);}
+}
+function modeSwitch(){
+    let currentMode=document.documentElement.getAttribute('data-color-mode');
+    let newMode = currentMode === "light" ? "dark" : currentMode === "dark" ? "auto" : "light";
+    localStorage.setItem("meek_theme", newMode);
+    if(themeSettings[newMode]){
+        changeTheme(...themeSettings[newMode]);
+    }
+}
+function utterancesTheme(theme){
+    const message={type:'set-theme',theme: theme};
+    const iframe=document.getElementsByClassName('utterances-frame')[0];
+    iframe.contentWindow.postMessage(message,'https://utteranc.es');
+}
+if(themeSettings[theme]){changeTheme(...themeSettings[theme]);}
+console.log("\n %c Gmeek last https://github.com/Meekdai/Gmeek \n","padding:5px 0;background:#02d81d;color:#fff");
+</script>
+
+<script>
+document.getElementById("pathHome").setAttribute("d",IconList["home"]);
+
+
+
+
+function openComments(){
+    cm=document.getElementById("comments");
+    cmButton=document.getElementById("cmButton");
+    cmButton.disabled=true;
+    cmButton.innerHTML="loading";
+    span=document.createElement("span");
+    span.setAttribute("class","AnimatedEllipsis");
+    cmButton.appendChild(span);
+
+    script=document.createElement("script");
+    script.setAttribute("src","https://utteranc.es/client.js");
+    script.setAttribute("repo","JustHeart31/JustHeart31.github.io");
+    script.setAttribute("issue-term","title");
+    
+    if(localStorage.getItem("meek_theme")=="dark"){script.setAttribute("theme","dark-blue");}
+    else if(localStorage.getItem("meek_theme")=="light") {script.setAttribute("theme","github-light");}
+    else{script.setAttribute("theme","preferred-color-scheme");}
+    
+    script.setAttribute("crossorigin","anonymous");
+    script.setAttribute("async","");
+    cm.appendChild(script);
+
+    int=self.setInterval("iFrameLoading()",200);
+}
+
+function iFrameLoading(){
+    var utterances=document.getElementsByClassName('utterances');
+    if(utterances.length==1){
+        if(utterances[0].style.height!=""){
+            utterancesLoad=1;
+            int=window.clearInterval(int);
+            document.getElementById("cmButton").style.display="none";
+            console.log("utterances Load OK");
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const createClipboardHTML = (codeContent, additionalClasses = '') => `
+        <pre class="notranslate"><code class="notranslate">${codeContent}</code></pre>
+        <div class="clipboard-container position-absolute right-0 top-0 ${additionalClasses}">
+            <clipboard-copy class="ClipboardButton btn m-2 p-0" role="button" style="display: inherit;">
+                <svg height="16" width="16" class="octicon octicon-copy m-2"><path d="${IconList["copy"]}"></path></svg>
+                <svg height="16" width="16" class="octicon octicon-check color-fg-success m-2 d-none"><path d="${IconList["check"]}"></path></svg>
+            </clipboard-copy>
+            <div class="copy-feedback">Copied!</div>
+        </div>
+    `;
+
+    const handleCodeElements = (selector = '') => {
+        document.querySelectorAll(selector).forEach(codeElement => {
+            const codeContent = codeElement.innerHTML;
+            const newStructure = document.createElement('div');
+            newStructure.className = 'snippet-clipboard-content position-relative overflow-auto';
+            newStructure.innerHTML = createClipboardHTML(codeContent);
+
+            const parentElement = codeElement.parentElement;
+            if (selector.includes('highlight')) {
+                parentElement.insertBefore(newStructure, codeElement.nextSibling);
+                parentElement.removeChild(codeElement);
+            } else {
+                parentElement.parentElement.replaceChild(newStructure, parentElement);
+            }
+        });
+    };
+
+    handleCodeElements('pre.notranslate > code.notranslate');
+    handleCodeElements('div.highlight > pre.notranslate');
+
+    let currentFeedback = null;
+    document.querySelectorAll('clipboard-copy').forEach(copyButton => {
+        copyButton.addEventListener('click', () => {
+            const codeContent = copyButton.closest('.snippet-clipboard-content').innerText;
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = codeContent;
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempTextArea);
+
+            const copyIcon = copyButton.querySelector('.octicon-copy');
+            const checkIcon = copyButton.querySelector('.octicon-check');
+            const copyFeedback = copyButton.nextElementSibling;
+
+            if (currentFeedback && currentFeedback !== copyFeedback) {currentFeedback.style.display = 'none';}
+            currentFeedback = copyFeedback;
+
+            copyIcon.classList.add('d-none');
+            checkIcon.classList.remove('d-none');
+            copyFeedback.style.display = 'block';
+            copyButton.style.borderColor = 'var(--color-success-fg)';
+
+            setTimeout(() => {
+                copyIcon.classList.remove('d-none');
+                checkIcon.classList.add('d-none');
+                copyFeedback.style.display = 'none';
+                copyButton.style.borderColor = '';
+            }, 2000);
+        });
+    });
+});
+
+</script>
+
+
+</html>
